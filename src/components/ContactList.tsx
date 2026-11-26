@@ -1,4 +1,4 @@
-import { Menu, Pin, Plus, Search, X } from 'lucide-react';
+import { HelpCircle, Menu, Pin, Plus, Search, Sparkles, X } from 'lucide-react';
 import React from 'react';
 import {
   STATUS_META,
@@ -11,6 +11,7 @@ import { formatRelativeDue } from '../utils/date';
 
 interface ContactListProps {
   contacts: ContactSummary[];
+  totalContacts: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
   filter: SmartFilter;
@@ -20,6 +21,8 @@ interface ContactListProps {
   onSortChange: (sort: SortOption) => void;
   onOpenSidebar: () => void;
   onNewContact: () => void;
+  onLoadSample: () => void;
+  onOpenGuide: () => void;
 }
 
 function getFilterTitle(filter: SmartFilter): string {
@@ -41,6 +44,7 @@ function getFilterTitle(filter: SmartFilter): string {
 
 export const ContactList: React.FC<ContactListProps> = ({
   contacts,
+  totalContacts,
   selectedId,
   onSelect,
   filter,
@@ -50,6 +54,8 @@ export const ContactList: React.FC<ContactListProps> = ({
   onSortChange,
   onOpenSidebar,
   onNewContact,
+  onLoadSample,
+  onOpenGuide,
 }) => {
   return (
     <section className="list-pane" aria-label="Contacts list">
@@ -126,11 +132,32 @@ export const ContactList: React.FC<ContactListProps> = ({
               textAlign: 'center',
               color: 'var(--text-muted)',
               fontSize: '13.5px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
             }}
           >
-            {searchQuery
-              ? 'No contacts or visits match your search.'
-              : 'No contacts in this view yet.'}
+            <p style={{ margin: 0 }}>
+              {searchQuery
+                ? 'No contacts or visits match your search.'
+                : totalContacts === 0
+                  ? 'Your local notebook is ready. Add your first Return Visit or load sample notes to explore.'
+                  : 'No contacts in this view yet.'}
+            </p>
+            {totalContacts === 0 && !searchQuery && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxWidth: '220px', marginTop: '4px' }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={onNewContact}>
+                  <Plus size={14} /> New Return Visit
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
+                  <Sparkles size={14} /> Load Sample Notes
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenGuide}>
+                  <HelpCircle size={14} /> How to Use &amp; Install
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           contacts.map((c) => {

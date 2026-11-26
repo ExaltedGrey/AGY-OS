@@ -11,7 +11,9 @@ import { useFieldnotes } from './hooks/useFieldnotes';
 export function App() {
   const fn = useFieldnotes();
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 1060 : false
+  );
   const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
@@ -98,6 +100,7 @@ export function App() {
 
       <ContactList
         contacts={fn.filteredContacts}
+        totalContacts={fn.contacts.length}
         selectedId={fn.selectedContactId}
         onSelect={handleSelectContact}
         filter={fn.filter}
@@ -107,6 +110,11 @@ export function App() {
         onSortChange={fn.setSortBy}
         onOpenSidebar={() => setSidebarOpen(true)}
         onNewContact={handleNewContact}
+        onLoadSample={() => {
+          fn.loadSampleData();
+          setMobileView('detail');
+        }}
+        onOpenGuide={() => setGuideOpen(true)}
       />
 
       {fn.selectedContact ? (
