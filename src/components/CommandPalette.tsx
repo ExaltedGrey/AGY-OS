@@ -1,6 +1,7 @@
 import {
   HardDriveDownload,
   Hash,
+  HelpCircle,
   MapPin,
   Moon,
   Plus,
@@ -29,6 +30,7 @@ interface CommandPaletteProps {
   onSelectTag: (tag: string) => void;
   onNewContact: () => void;
   onOpenBackup: () => void;
+  onOpenGuide: () => void;
   onToggleTheme: () => void;
 }
 
@@ -52,6 +54,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onSelectTag,
   onNewContact,
   onOpenBackup,
+  onOpenGuide,
   onToggleTheme,
 }) => {
   const [query, setQuery] = useState('');
@@ -89,6 +92,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         run: () => {
           onClose();
           onOpenBackup();
+        },
+      },
+      {
+        id: 'act-guide',
+        label: 'How to Use & Install as App',
+        sub: 'Privacy, backup instructions, and phone home-screen setup',
+        icon: <HelpCircle size={15} />,
+        run: () => {
+          onClose();
+          onOpenGuide();
         },
       },
       {
@@ -161,6 +174,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     onClose,
     onNewContact,
     onOpenBackup,
+    onOpenGuide,
     onSelectContact,
     onSelectTag,
     onSelectTerritory,

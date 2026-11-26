@@ -1,9 +1,10 @@
-import { BookOpen, CheckCircle2, Plus, Sparkles, Upload } from 'lucide-react';
+import { BookOpen, CheckCircle2, HelpCircle, Plus, Sparkles, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { BackupModal } from './components/BackupModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ContactDetail } from './components/ContactDetail';
 import { ContactList } from './components/ContactList';
+import { GuideModal } from './components/GuideModal';
 import { Sidebar } from './components/Sidebar';
 import { useFieldnotes } from './hooks/useFieldnotes';
 
@@ -14,6 +15,7 @@ export function App() {
   const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   // Global Cmd/Ctrl+K shortcut
   useEffect(() => {
@@ -91,6 +93,7 @@ export function App() {
         onNewContact={handleNewContact}
         onOpenCommandPalette={() => setPaletteOpen(true)}
         onOpenBackupModal={() => setBackupOpen(true)}
+        onOpenGuideModal={() => setGuideOpen(true)}
       />
 
       <ContactList
@@ -131,9 +134,9 @@ export function App() {
             </div>
             <h2 className="empty-title">Welcome to Fieldnotes</h2>
             <p className="empty-desc">
-              A calm, private notebook for Return Visits and Bible Studies. Everything stays
-              locally in SQLite on your device, with one-click encrypted backups whenever you
-              change devices.
+              A calm, private notebook for Return Visits and Bible Studies. Your notes stay
+              strictly on this device in local SQLite — nobody else can see them. Remember to save
+              an encrypted backup whenever you add important notes or switch devices.
             </p>
             <div className="empty-actions">
               <button
@@ -168,6 +171,15 @@ export function App() {
                 <Upload size={15} />
                 Restore Backup
               </button>
+              <button
+                type="button"
+                id="btn-empty-guide"
+                className="btn btn-ghost"
+                onClick={() => setGuideOpen(true)}
+              >
+                <HelpCircle size={15} />
+                How to Use &amp; Install
+              </button>
             </div>
           </div>
         </main>
@@ -188,6 +200,7 @@ export function App() {
         onSelectTag={handleClickTag}
         onNewContact={handleNewContact}
         onOpenBackup={() => setBackupOpen(true)}
+        onOpenGuide={() => setGuideOpen(true)}
         onToggleTheme={fn.toggleTheme}
       />
 
@@ -200,6 +213,12 @@ export function App() {
         onExportMarkdown={fn.exportMarkdownBundle}
         onImportFile={fn.importBackupFile}
         onResetAll={fn.resetAllData}
+      />
+
+      <GuideModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        onOpenBackup={() => setBackupOpen(true)}
       />
 
       {fn.toast && (

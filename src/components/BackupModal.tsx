@@ -112,6 +112,21 @@ export const BackupModal: React.FC<BackupModalProps> = ({
         </div>
 
         <div className="modal-body">
+          <div className="callout-box warm">
+            <ShieldCheck
+              size={16}
+              style={{ color: 'var(--warm)', flexShrink: 0, marginTop: '2px' }}
+            />
+            <div>
+              <strong>Saved only on this device</strong>
+              <p>
+                Your notes stay 100% private in this browser — nothing is stored on a server.
+                Export an encrypted <code>.fnvault</code> backup regularly so you never lose your
+                notes if you clear browser data or change devices.
+              </p>
+            </div>
+          </div>
+
           <div className="vault-stats">
             <div className="vault-stat">
               <span className="vault-stat-val">{backupMeta.contact_count}</span>

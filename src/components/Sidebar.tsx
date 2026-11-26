@@ -6,6 +6,7 @@ import {
   DoorClosed,
   Hash,
   HardDriveDownload,
+  HelpCircle,
   Inbox,
   MapPin,
   Moon,
@@ -40,6 +41,7 @@ interface SidebarProps {
   onNewContact: () => void;
   onOpenCommandPalette: () => void;
   onOpenBackupModal: () => void;
+  onOpenGuideModal: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -58,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewContact,
   onOpenCommandPalette,
   onOpenBackupModal,
+  onOpenGuideModal,
 }) => {
   const select = (next: SmartFilter) => {
     onSelectFilter(next);
@@ -233,6 +236,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
               ))}
             </div>
           )}
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Guide</div>
+            <button
+              type="button"
+              id="btn-how-to-use"
+              className="nav-item"
+              onClick={() => {
+                onOpenGuideModal();
+                onClose();
+              }}
+            >
+              <span className="nav-item-left">
+                <HelpCircle size={15} />
+                <span className="nav-item-label">How to Use &amp; Install</span>
+              </span>
+            </button>
+          </div>
         </nav>
 
         <div className="sidebar-footer">
