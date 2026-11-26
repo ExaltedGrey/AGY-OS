@@ -1,0 +1,141 @@
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+
+  /* Warm editorial surfaces */
+  --bg-app: #f7f4ef;
+  --bg-sidebar: #f2eee7;
+  --bg-list: #faf8f5;
+  --bg-editor: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f1ece4;
+  --bg-hover: rgba(44, 62, 53, 0.055);
+  --bg-active: rgba(44, 62, 53, 0.1);
+  --bg-input: #f8f6f2;
+
+  /* Ink & typography colors */
+  --text-primary: #1f2421;
+  --text-secondary: #535b55;
+  --text-muted: #7c847e;
+  --text-inverse: #faf8f5;
+
+  /* Borders & dividers */
+  --border-subtle: rgba(31, 36, 33, 0.08);
+  --border-strong: rgba(31, 36, 33, 0.15);
+  --border-focus: #2c4a3e;
+
+  /* Brand & semantic accents (forest sage + warm terracotta/amber) */
+  --accent: #2c4a3e;
+  --accent-hover: #21382f;
+  --accent-soft: rgba(44, 74, 62, 0.1);
+  --accent-text: #254035;
+
+  --warm: #b96b38;
+  --warm-soft: rgba(185, 107, 56, 0.12);
+
+  /* Status colors */
+  --status-study: #2c6e49;
+  --status-study-bg: rgba(44, 110, 73, 0.11);
+  --status-rv: #b86b2b;
+  --status-rv-bg: rgba(184, 107, 43, 0.12);
+  --status-nah: #6d757d;
+  --status-nah-bg: rgba(109, 117, 125, 0.12);
+  --status-inactive: #949994;
+  --status-inactive-bg: rgba(148, 153, 148, 0.12);
+
+  --danger: #b83b3b;
+  --danger-bg: rgba(184, 59, 59, 0.1);
+
+  --due-overdue: #b83b3b;
+  --due-overdue-bg: rgba(184, 59, 59, 0.11);
+  --due-today: #a85c1b;
+  --due-today-bg: rgba(196, 123, 52, 0.15);
+
+  /* Wikilink & Tag tokens */
+  --wikilink-text: #265947;
+  --wikilink-bg: rgba(38, 89, 71, 0.09);
+  --tag-text: #7c5228;
+  --tag-bg: rgba(185, 107, 56, 0.11);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(24, 28, 25, 0.05);
+  --shadow-md: 0 8px 24px rgba(24, 28, 25, 0.08), 0 1px 3px rgba(24, 28, 25, 0.05);
+  --shadow-lg: 0 20px 48px rgba(24, 28, 25, 0.16), 0 4px 12px rgba(24, 28, 25, 0.08);
+  --backdrop: rgba(24, 28, 25, 0.36);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Soft charcoal surfaces (warm neutral, zero purple) */
+  --bg-app: #161716;
+  --bg-sidebar: #1b1c1b;
+  --bg-list: #1f201e;
+  --bg-editor: #242523;
+  --bg-elevated: #2a2b29;
+  --bg-subtle: #2c2d2a;
+  --bg-hover: rgba(242, 238, 231, 0.06);
+  --bg-active: rgba(132, 179, 155, 0.14);
+  --bg-input: #1b1c1b;
+
+  --text-primary: #eceae4;
+  --text-secondary: #b1b5ae;
+  --text-muted: #7f847d;
+  --text-inverse: #161716;
+
+  --border-subtle: rgba(236, 234, 228, 0.08);
+  --border-strong: rgba(236, 234, 228, 0.15);
+  --border-focus: #7cb497;
+
+  --accent: #7cb497;
+  --accent-hover: #8fc5a9;
+  --accent-soft: rgba(124, 180, 151, 0.14);
+  --accent-text: #95cab0;
+
+  --warm: #df9a67;
+  --warm-soft: rgba(223, 154, 103, 0.14);
+
+  --status-study: #78c096;
+  --status-study-bg: rgba(120, 192, 150, 0.14);
+  --status-rv: #e09c62;
+  --status-rv-bg: rgba(224, 156, 98, 0.15);
+  --status-nah: #9ea5ad;
+  --status-nah-bg: rgba(158, 165, 173, 0.14);
+  --status-inactive: #7c827d;
+  --status-inactive-bg: rgba(124, 130, 125, 0.14);
+
+  --danger: #e07676;
+  --danger-bg: rgba(224, 118, 118, 0.14);
+
+  --due-overdue: #e57a7a;
+  --due-overdue-bg: rgba(229, 122, 122, 0.16);
+  --due-today: #e5a55e;
+  --due-today-bg: rgba(229, 165, 94, 0.16);
+
+  --wikilink-text: #8cc9aa;
+  --wikilink-bg: rgba(140, 201, 170, 0.13);
+  --tag-text: #e2a773;
+  --tag-bg: rgba(226, 167, 115, 0.13);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 56px rgba(0, 0, 0, 0.52);
+  --backdrop: rgba(0, 0, 0, 0.58);
+}
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --transition-fast: 140ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --transition-base: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --sidebar-width: 244px;
+  --list-width: 316px;
+}
