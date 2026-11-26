@@ -1234,4 +1234,186 @@
   font-style: italic;
 }
 
+/* Monogram Avatars & Modern Contact Row Layout */
+.contact-row-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  width: 100%;
+}
+
+.contact-row-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.avatar-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.avatar-badge.lg {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  font-size: 15px;
+}
+
+.avatar-badge[data-status='bible_study'] {
+  background: var(--status-study-bg);
+  color: var(--status-study);
+}
+
+.avatar-badge[data-status='return_visit'] {
+  background: var(--status-rv-bg);
+  color: var(--status-rv);
+}
+
+.avatar-badge[data-status='not_at_home'] {
+  background: var(--status-nah-bg);
+  color: var(--status-nah);
+}
+
+.avatar-badge[data-status='inactive'] {
+  background: var(--status-inactive-bg);
+  color: var(--status-inactive);
+}
+
+.contact-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Compact Info Summary Strip (replaces always-open 7-field form) */
+.info-summary-card {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-list);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-summary-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.info-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: center;
+  flex: 1;
+}
+
+.info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-editor);
+  border: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  max-width: 100%;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.info-pill span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-pill.interactive {
+  color: var(--accent-text);
+  font-weight: 500;
+}
+
+.info-pill.interactive:hover {
+  border-color: var(--border-focus);
+  background: var(--accent-soft);
+}
+
+/* Mobile Notes / Visits Tab Switcher */
+.mobile-section-tabs {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .mobile-section-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 3px;
+    border-radius: var(--radius-md);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .mobile-section-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: background var(--transition-fast), color var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .mobile-section-tab.active {
+    background: var(--bg-editor);
+    color: var(--text-primary);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .mobile-tab-hidden {
+    display: none;
+  }
+
+  .contact-title-input {
+    font-size: 1.55rem;
+  }
+
+  .btn-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .contact-row {
+    padding: 12px;
+    background: var(--bg-editor);
+    border-color: var(--border-subtle);
+  }
+
+  .contact-row:active {
+    transform: scale(0.99);
+  }
+}
+
+
 

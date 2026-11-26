@@ -3,6 +3,8 @@ import {
   BookMarked,
   BookOpen,
   Calendar,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Globe,
   HelpCircle,
@@ -10,6 +12,7 @@ import {
   MapPin,
   Mic,
   Minus,
+  Navigation,
   Phone,
   Pin,
   Plus,
@@ -70,6 +73,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [notesMode, setNotesMode] = useState<'preview' | 'edit'>(() =>
     contact.notes.trim() ? 'preview' : 'edit'
   );
+  const [editingInfo, setEditingInfo] = useState(
+    () => !(contact.name.trim() || contact.address.trim() || contact.territory.trim())
+  );
+  const [mobileTab, setMobileTab] = useState<'notes' | 'visits'>('notes');
   const [showVisitComposer, setShowVisitComposer] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -96,6 +103,8 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     notesDictation.stop();
     visitDictation.stop();
     setNotesMode(contact.notes.trim() ? 'preview' : 'edit');
+    setEditingInfo(!(contact.name.trim() || contact.address.trim() || contact.territory.trim()));
+    setMobileTab('notes');
     setShowVisitComposer(false);
     setConfirmDelete(false);
     setOutcome(contact.status === 'bible_study' ? 'study_conducted' : 'spoke');
@@ -202,7 +211,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             type="button"
             id="btn-log-visit-top"
             className="btn btn-primary btn-sm"
-            onClick={() => setShowVisitComposer((v) => !v)}
+            onClick={() => {
+              setMobileTab('visits');
+              setShowVisitComposer((v) => !v);
+            }}
           >
             <Plus size={14} />
             Log Visit
@@ -251,17 +263,31 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
 
       <div className="detail-scroll">
         <div className="detail-container">
-          {/* Header: Name & Status Switcher */}
+          {/* Header: Monogram, Name & Status Switcher */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <input
-              id="contact-name-input"
-              type="text"
-              className="contact-title-input"
-              value={contact.name}
-              placeholder="Contact Name…"
-              onChange={(e) => onUpdate(contact.id, { name: e.target.value })}
-              aria-label="Contact name"
-            />
+            <div className="contact-header-row">
+              <span
+                className="avatar-badge lg"
+                data-status={contact.status}
+                aria-hidden="true"
+              >
+                {(contact.name || '?')
+                  .trim()
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((p) => p[0]?.toUpperCase() ?? '')
+                  .join('') || '?'}
+              </span>
+              <input
+                id="contact-name-input"
+                type="text"
+                className="contact-title-input"
+                value={contact.name}
+                placeholder="Contact Name…"
+                onChange={(e) => onUpdate(contact.id, { name: e.target.value })}
+                aria-label="Contact name"
+              />
+            </div>
 
             <div
               style={{
@@ -296,98 +322,177 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             </div>
           </div>
 
-          {/* Structured Contact Profile Grid */}
-          <div className="meta-grid">
-            <label className="meta-field">
-              <span className="meta-label">
-                <MapPin size={11} /> Address
-              </span>
-              <input
-                type="text"
-                className="meta-input"
-                value={contact.address}
-                placeholder="Street address"
-                onChange={(e) => onUpdate(contact.id, { address: e.target.value })}
-              />
-            </label>
+          {/* Compact Collapsible Contact Info Summary */}
+          <section className="info-summary-card" aria-label="Contact details">
+            <div className="info-summary-top">
+              <div className="info-pills">
+                {contact.address && (
+                  <a
+                    className="info-pill interactive"
+                    href={`https://maps.google.com/?q=${encodeURIComponent(
+                      [contact.address, contact.apartment].filter(Boolean).join(', ')
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open address in Maps"
+                  >
+                    <Navigation size={12} />
+                    <span>
+                      {[contact.address, contact.apartment].filter(Boolean).join(', ')}
+                    </span>
+                  </a>
+                )}
+                {contact.best_time && (
+                  <span className="info-pill">
+                    <Clock size={12} />
+                    <span>{contact.best_time}</span>
+                  </span>
+                )}
+                {contact.language && (
+                  <span className="info-pill">
+                    <Globe size={12} />
+                    <span>{contact.language}</span>
+                  </span>
+                )}
+                {contact.phone && (
+                  <a
+                    className="info-pill interactive"
+                    href={`tel:${contact.phone.replace(/[^+\d]/g, '')}`}
+                    title="Call phone number"
+                  >
+                    <Phone size={12} />
+                    <span>{contact.phone}</span>
+                  </a>
+                )}
+                {contact.next_visit_date && (
+                  <span className="info-pill">
+                    <Calendar size={12} />
+                    <span>Next: {formatShortDate(contact.next_visit_date)}</span>
+                  </span>
+                )}
+                {!contact.address &&
+                  !contact.best_time &&
+                  !contact.language &&
+                  !contact.phone &&
+                  !contact.next_visit_date && (
+                    <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+                      Add address, best time to visit, territory, or next visit date…
+                    </span>
+                  )}
+              </div>
 
-            <label className="meta-field">
-              <span className="meta-label">Unit / Apt</span>
-              <input
-                type="text"
-                className="meta-input"
-                value={contact.apartment}
-                placeholder="Apt, floor, or gate"
-                onChange={(e) => onUpdate(contact.id, { apartment: e.target.value })}
-              />
-            </label>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setEditingInfo((v) => !v)}
+                aria-expanded={editingInfo}
+              >
+                {editingInfo ? (
+                  <>
+                    Done <ChevronUp size={14} />
+                  </>
+                ) : (
+                  <>
+                    Edit Info <ChevronDown size={14} />
+                  </>
+                )}
+              </button>
+            </div>
 
-            <label className="meta-field">
-              <span className="meta-label">Territory / Area</span>
-              <input
-                type="text"
-                className="meta-input"
-                value={contact.territory}
-                placeholder="e.g. Northside — Map 14"
-                onChange={(e) => onUpdate(contact.id, { territory: e.target.value })}
-              />
-            </label>
+            {editingInfo && (
+              <div className="meta-grid" style={{ border: 'none', padding: '6px 0 0', background: 'transparent' }}>
+                <label className="meta-field">
+                  <span className="meta-label">
+                    <MapPin size={11} /> Address
+                  </span>
+                  <input
+                    type="text"
+                    className="meta-input"
+                    value={contact.address}
+                    placeholder="Street address"
+                    onChange={(e) => onUpdate(contact.id, { address: e.target.value })}
+                  />
+                </label>
 
-            <label className="meta-field">
-              <span className="meta-label">
-                <Clock size={11} /> Best Time
-              </span>
-              <input
-                type="text"
-                className="meta-input"
-                value={contact.best_time}
-                placeholder="e.g. Sat mornings"
-                onChange={(e) => onUpdate(contact.id, { best_time: e.target.value })}
-              />
-            </label>
+                <label className="meta-field">
+                  <span className="meta-label">Unit / Apt</span>
+                  <input
+                    type="text"
+                    className="meta-input"
+                    value={contact.apartment}
+                    placeholder="Apt, floor, or gate"
+                    onChange={(e) => onUpdate(contact.id, { apartment: e.target.value })}
+                  />
+                </label>
 
-            <label className="meta-field">
-              <span className="meta-label">
-                <Globe size={11} /> Language
-              </span>
-              <input
-                type="text"
-                className="meta-input"
-                value={contact.language}
-                placeholder="e.g. English, Spanish"
-                onChange={(e) => onUpdate(contact.id, { language: e.target.value })}
-              />
-            </label>
+                <label className="meta-field">
+                  <span className="meta-label">Territory / Area</span>
+                  <input
+                    type="text"
+                    className="meta-input"
+                    value={contact.territory}
+                    placeholder="e.g. Northside — Map 14"
+                    onChange={(e) => onUpdate(contact.id, { territory: e.target.value })}
+                  />
+                </label>
 
-            <label className="meta-field">
-              <span className="meta-label">
-                <Phone size={11} /> Phone
-              </span>
-              <input
-                type="tel"
-                className="meta-input"
-                value={contact.phone}
-                placeholder="Optional"
-                onChange={(e) => onUpdate(contact.id, { phone: e.target.value })}
-              />
-            </label>
+                <label className="meta-field">
+                  <span className="meta-label">
+                    <Clock size={11} /> Best Time
+                  </span>
+                  <input
+                    type="text"
+                    className="meta-input"
+                    value={contact.best_time}
+                    placeholder="e.g. Sat mornings"
+                    onChange={(e) => onUpdate(contact.id, { best_time: e.target.value })}
+                  />
+                </label>
 
-            <label className="meta-field">
-              <span className="meta-label">
-                <Calendar size={11} /> Next Visit
-              </span>
-              <input
-                type="date"
-                className="meta-input"
-                value={contact.next_visit_date ?? ''}
-                onChange={(e) =>
-                  onUpdate(contact.id, {
-                    next_visit_date: e.target.value ? e.target.value : null,
-                  })
-                }
-              />
-            </label>
-          </div>
+                <label className="meta-field">
+                  <span className="meta-label">
+                    <Globe size={11} /> Language
+                  </span>
+                  <input
+                    type="text"
+                    className="meta-input"
+                    value={contact.language}
+                    placeholder="e.g. English, Spanish"
+                    onChange={(e) => onUpdate(contact.id, { language: e.target.value })}
+                  />
+                </label>
+
+                <label className="meta-field">
+                  <span className="meta-label">
+                    <Phone size={11} /> Phone
+                  </span>
+                  <input
+                    type="tel"
+                    className="meta-input"
+                    value={contact.phone}
+                    placeholder="Optional"
+                    onChange={(e) => onUpdate(contact.id, { phone: e.target.value })}
+                  />
+                </label>
+
+                <label className="meta-field">
+                  <span className="meta-label">
+                    <Calendar size={11} /> Next Visit
+                  </span>
+                  <input
+                    type="date"
+                    className="meta-input"
+                    value={contact.next_visit_date ?? ''}
+                    onChange={(e) =>
+                      onUpdate(contact.id, {
+                        next_visit_date: e.target.value ? e.target.value : null,
+                      })
+                    }
+                  />
+                </label>
+              </div>
+            )}
+          </section>
 
           {/* Bible Study Progress Tracker */}
           {(contact.status === 'bible_study' || contact.publication) && (
@@ -459,8 +564,35 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             </section>
           )}
 
+          {/* Mobile Notes / Visits Tab Switcher */}
+          <div className="mobile-section-tabs" role="tablist" aria-label="Contact sections">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileTab === 'notes'}
+              className={`mobile-section-tab ${mobileTab === 'notes' ? 'active' : ''}`}
+              onClick={() => setMobileTab('notes')}
+            >
+              <ScrollText size={14} />
+              Notes
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mobileTab === 'visits'}
+              className={`mobile-section-tab ${mobileTab === 'visits' ? 'active' : ''}`}
+              onClick={() => setMobileTab('visits')}
+            >
+              <BookMarked size={14} />
+              Visits ({visits.length})
+            </button>
+          </div>
+
           {/* Obsidian-style Markdown Notes */}
-          <section aria-label="Markdown notes">
+          <section
+            aria-label="Markdown notes"
+            className={mobileTab === 'visits' ? 'mobile-tab-hidden' : undefined}
+          >
             <div className="section-header">
               <h2 className="section-heading">
                 <ScrollText size={13} /> Notes
@@ -585,7 +717,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
           </section>
 
           {/* Visit Log Timeline */}
-          <section aria-label="Visit history">
+          <section
+            aria-label="Visit history"
+            className={mobileTab === 'notes' ? 'mobile-tab-hidden' : undefined}
+          >
             <div className="section-header">
               <h2 className="section-heading">
                 <BookMarked size={13} /> Visit Log ({visits.length})

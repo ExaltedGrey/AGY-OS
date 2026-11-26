@@ -163,6 +163,12 @@ export const ContactList: React.FC<ContactListProps> = ({
           contacts.map((c) => {
             const due = formatRelativeDue(c.next_visit_date);
             const metaParts = [c.address, c.territory].filter(Boolean);
+            const initials = (c.name || '?')
+              .trim()
+              .split(/\s+/)
+              .slice(0, 2)
+              .map((p) => p[0]?.toUpperCase() ?? '')
+              .join('') || '?';
             const snippet =
               c.status === 'bible_study' && c.current_lesson
                 ? `${c.publication || 'Study'} · ${c.current_lesson}`
@@ -179,32 +185,39 @@ export const ContactList: React.FC<ContactListProps> = ({
                 className={`contact-row ${c.id === selectedId ? 'selected' : ''}`}
                 onClick={() => onSelect(c.id)}
               >
-                <div className="contact-row-top">
-                  <div className="contact-row-name">
-                    <span
-                      className="status-dot"
-                      style={{ background: STATUS_META[c.status].colorVar }}
-                      title={STATUS_META[c.status].label}
-                    />
-                    <span>{c.name || 'Untitled Contact'}</span>
-                    {c.pinned && (
-                      <Pin
-                        size={11}
-                        style={{ color: 'var(--warm)', flexShrink: 0 }}
-                        aria-label="Pinned"
-                      />
+                <div className="contact-row-inner">
+                  <span
+                    className="avatar-badge"
+                    data-status={c.status}
+                    title={STATUS_META[c.status].label}
+                    aria-hidden="true"
+                  >
+                    {initials}
+                  </span>
+                  <div className="contact-row-content">
+                    <div className="contact-row-top">
+                      <div className="contact-row-name">
+                        <span>{c.name || 'Untitled Contact'}</span>
+                        {c.pinned && (
+                          <Pin
+                            size={11}
+                            style={{ color: 'var(--warm)', flexShrink: 0 }}
+                            aria-label="Pinned"
+                          />
+                        )}
+                      </div>
+                      {due.tone !== 'none' && c.status !== 'inactive' && (
+                        <span className={`due-pill ${due.tone}`}>{due.label}</span>
+                      )}
+                    </div>
+
+                    {metaParts.length > 0 && (
+                      <div className="contact-row-meta">{metaParts.join(' · ')}</div>
                     )}
+
+                    <div className="contact-row-snippet">{snippet}</div>
                   </div>
-                  {due.tone !== 'none' && c.status !== 'inactive' && (
-                    <span className={`due-pill ${due.tone}`}>{due.label}</span>
-                  )}
                 </div>
-
-                {metaParts.length > 0 && (
-                  <div className="contact-row-meta">{metaParts.join(' · ')}</div>
-                )}
-
-                <div className="contact-row-snippet">{snippet}</div>
               </button>
             );
           })
