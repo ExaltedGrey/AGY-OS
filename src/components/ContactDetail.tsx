@@ -3,6 +3,7 @@ import {
   BookMarked,
   BookOpen,
   Calendar,
+  CalendarPlus,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -35,6 +36,7 @@ import {
   type Visit,
   type VisitOutcome,
 } from '../types/models';
+import { downloadFollowUpICS } from '../utils/calendar';
 import { addDaysISO, formatRelativeDue, formatShortDate, getTodayISO } from '../utils/date';
 import { toggleCheckboxAtLine } from '../utils/markdown';
 import { MarkdownPreview } from './MarkdownPreview';
@@ -90,6 +92,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [nextQuestion, setNextQuestion] = useState('');
   const [visitNotes, setVisitNotes] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState(addDaysISO(7));
+  const [addToCalendar, setAddToCalendar] = useState(false);
 
   const notesDictation = useDictation((spoken) => {
     onUpdate(contact.id, { notes: appendDictatedText(contact.notes, spoken) });
@@ -110,6 +113,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setOutcome(contact.status === 'bible_study' ? 'study_conducted' : 'spoke');
     setVisitDate(getTodayISO());
     setNextFollowUp(addDaysISO(7));
+    setAddToCalendar(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact.id]);
 
@@ -166,10 +170,18 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
       },
       nextFollowUp ? nextFollowUp : null
     );
+    if (addToCalendar && nextFollowUp) {
+      downloadFollowUpICS(contact, {
+        nextVisitDate: nextFollowUp,
+        scriptures,
+        nextQuestion,
+      });
+    }
     setScriptures('');
     setPublicationPlaced('');
     setNextQuestion('');
     setVisitNotes('');
+    setAddToCalendar(false);
     setShowVisitComposer(false);
   };
 
@@ -365,10 +377,16 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   </a>
                 )}
                 {contact.next_visit_date && (
-                  <span className="info-pill">
-                    <Calendar size={12} />
-                    <span>Next: {formatShortDate(contact.next_visit_date)}</span>
-                  </span>
+                  <button
+                    type="button"
+                    id="btn-add-to-calendar"
+                    className="info-pill interactive"
+                    onClick={() => downloadFollowUpICS(contact)}
+                    title="Add follow-up visit to your phone or computer calendar"
+                  >
+                    <CalendarPlus size={12} />
+                    <span>Next: {formatShortDate(contact.next_visit_date)} · Calendar</span>
+                  </button>
                 )}
                 {!contact.address &&
                   !contact.best_time &&
@@ -866,15 +884,37 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     gap: '10px',
                   }}
                 >
-                  <label className="field-group" style={{ minWidth: '180px' }}>
-                    <span className="field-label">Schedule Next Visit</span>
-                    <input
-                      type="date"
-                      className="input"
-                      value={nextFollowUp}
-                      onChange={(e) => setNextFollowUp(e.target.value)}
-                    />
-                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
+                    <label className="field-group">
+                      <span className="field-label">Schedule Next Visit</span>
+                      <input
+                        type="date"
+                        className="input"
+                        value={nextFollowUp}
+                        onChange={(e) => setNextFollowUp(e.target.value)}
+                      />
+                    </label>
+                    {nextFollowUp && (
+                      <label
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '7px',
+                          fontSize: '12.5px',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={addToCalendar}
+                          onChange={(e) => setAddToCalendar(e.target.checked)}
+                          style={{ accentColor: 'var(--accent)', width: '15px', height: '15px' }}
+                        />
+                        <span>Add to phone calendar (.ics)</span>
+                      </label>
+                    )}
+                  </div>
 
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
