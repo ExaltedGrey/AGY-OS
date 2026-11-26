@@ -1443,5 +1443,24 @@
   }
 }
 
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pinned-note-card {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-editor);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+
 
 

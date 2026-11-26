@@ -115,4 +115,29 @@ describe('FieldnotesRepository (SQLite)', () => {
     expect(contacts[0].name).toBe('Elena Rostova');
     expect(contacts[0].territory).toBe('West End');
   });
+
+  it('tracks visited_date, edits visits, and finds [[wikilink]] backlinks in visit notes', () => {
+    const maria = repo.createContact({ name: 'Maria Santos', status: 'bible_study' });
+    const carlos = repo.createContact({
+      name: 'Carlos Santos',
+      status: 'return_visit',
+      visited_date: '2026-11-10',
+    });
+
+    const visit = repo.addVisit({
+      contact_id: carlos.id,
+      visit_date: '2026-11-24',
+      outcome: 'spoke',
+      scriptures: 'Heb 3:4',
+      publication_placed: '',
+      next_question: 'Was life designed?',
+      notes: 'Chatted while [[Maria Santos]] was cooking.',
+    });
+
+    expect(repo.getContactById(carlos.id)?.visited_date).toBe('2026-11-24');
+    expect(repo.getBacklinks(maria.id, maria.name)).toHaveLength(1);
+
+    repo.updateVisit(visit.id, { notes: 'Updated note mentioning [[Maria Santos]] #science' });
+    expect(repo.listVisitsForContact(carlos.id)[0].notes).toContain('Updated note');
+  });
 });

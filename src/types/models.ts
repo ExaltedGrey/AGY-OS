@@ -20,6 +20,7 @@ export interface Contact {
   current_lesson: string;
   lesson_progress: number;
   lesson_total: number;
+  visited_date: string | null;
   next_visit_date: string | null;
   notes: string;
   pinned: boolean;

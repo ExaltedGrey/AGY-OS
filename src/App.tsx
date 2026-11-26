@@ -128,6 +128,7 @@ export function App() {
             setMobileView('list');
           }}
           onAddVisit={fn.addVisit}
+          onUpdateVisit={fn.updateVisit}
           onDeleteVisit={fn.deleteVisit}
           onClickTag={handleClickTag}
           onClickWikilink={handleClickWikilink}

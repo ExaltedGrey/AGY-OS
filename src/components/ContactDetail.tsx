@@ -3,7 +3,9 @@ import {
   BookMarked,
   BookOpen,
   Calendar,
+  CalendarCheck2,
   CalendarPlus,
+  Check,
   ChevronDown,
   ChevronUp,
   Clock,
@@ -49,6 +51,10 @@ interface ContactDetailProps {
   onUpdate: (id: string, patch: Partial<Omit<Contact, 'id' | 'created_at' | 'updated_at'>>) => void;
   onDelete: (id: string) => void;
   onAddVisit: (input: NewVisitInput, nextVisitDate?: string | null) => void;
+  onUpdateVisit: (
+    visitId: string,
+    patch: Partial<Omit<Visit, 'id' | 'contact_id' | 'created_at'>>
+  ) => void;
   onDeleteVisit: (visitId: string) => void;
   onClickTag: (tag: string) => void;
   onClickWikilink: (name: string) => void;
@@ -59,6 +65,14 @@ interface ContactDetailProps {
 
 const STATUS_OPTIONS: ContactStatus[] = ['return_visit', 'bible_study', 'not_at_home', 'inactive'];
 
+type DictationTarget =
+  | null
+  | 'new_visit_notes'
+  | 'new_visit_question'
+  | 'pinned_note'
+  | 'edit_visit_notes'
+  | 'edit_visit_question';
+
 export const ContactDetail: React.FC<ContactDetailProps> = ({
   contact,
   visits,
@@ -66,6 +80,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   onUpdate,
   onDelete,
   onAddVisit,
+  onUpdateVisit,
   onDeleteVisit,
   onClickTag,
   onClickWikilink,
@@ -73,18 +88,16 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   onBackMobile,
   composerOpenSignal = 0,
 }) => {
-  const [notesMode, setNotesMode] = useState<'preview' | 'edit'>(() =>
-    contact.notes.trim() ? 'preview' : 'edit'
-  );
   const [editingInfo, setEditingInfo] = useState(
     () => !(contact.name.trim() || contact.address.trim() || contact.territory.trim())
   );
-  const [mobileTab, setMobileTab] = useState<'notes' | 'visits'>('notes');
-  const [showVisitComposer, setShowVisitComposer] = useState(false);
+  const [showVisitComposer, setShowVisitComposer] = useState(() => visits.length === 0);
+  const [showPinnedEditor, setShowPinnedEditor] = useState(false);
+  const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Visit composer fields
-  const [visitDate, setVisitDate] = useState(getTodayISO());
+  // New Visit & Note composer fields
+  const [visitDate, setVisitDate] = useState(contact.visited_date || getTodayISO());
   const [outcome, setOutcome] = useState<VisitOutcome>(
     contact.status === 'bible_study' ? 'study_conducted' : 'spoke'
   );
@@ -94,26 +107,70 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [visitNotes, setVisitNotes] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState(addDaysISO(7));
   const [addToCalendar, setAddToCalendar] = useState(false);
+
+  // Edit existing visit fields
+  const [editVisitDate, setEditVisitDate] = useState('');
+  const [editOutcome, setEditOutcome] = useState<VisitOutcome>('spoke');
+  const [editScriptures, setEditScriptures] = useState('');
+  const [editPublication, setEditPublication] = useState('');
+  const [editNextQuestion, setEditNextQuestion] = useState('');
+  const [editVisitNotes, setEditVisitNotes] = useState('');
+
+  // Unified single-microphone dictation state
+  const [dictationTarget, setDictationTarget] = useState<DictationTarget>(null);
+  const dictationTargetRef = useRef<DictationTarget>(null);
+  dictationTargetRef.current = dictationTarget;
+
+  const contactRef = useRef(contact);
+  contactRef.current = contact;
+
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const notesDictation = useDictation((spoken) => {
-    onUpdate(contact.id, { notes: appendDictatedText(contact.notes, spoken) });
+  const dictation = useDictation((spoken) => {
+    const target = dictationTargetRef.current;
+    if (target === 'new_visit_notes') {
+      setVisitNotes((prev) => appendDictatedText(prev, spoken));
+    } else if (target === 'new_visit_question') {
+      setNextQuestion((prev) => appendDictatedText(prev, spoken));
+    } else if (target === 'pinned_note') {
+      const curr = contactRef.current;
+      onUpdate(curr.id, { notes: appendDictatedText(curr.notes, spoken) });
+    } else if (target === 'edit_visit_notes') {
+      setEditVisitNotes((prev) => appendDictatedText(prev, spoken));
+    } else if (target === 'edit_visit_question') {
+      setEditNextQuestion((prev) => appendDictatedText(prev, spoken));
+    }
   });
 
-  const visitDictation = useDictation((spoken) => {
-    setVisitNotes((prev) => appendDictatedText(prev, spoken));
-  });
+  const stopDictation = () => {
+    dictation.stop();
+    setDictationTarget(null);
+  };
+
+  const toggleDictationFor = (target: Exclude<DictationTarget, null>) => {
+    if (dictation.listening && dictationTarget === target) {
+      stopDictation();
+    } else {
+      setDictationTarget(target);
+      dictation.start();
+    }
+  };
 
   useEffect(() => {
-    notesDictation.stop();
-    visitDictation.stop();
-    setNotesMode(contact.notes.trim() ? 'preview' : 'edit');
+    if (!dictation.listening && dictationTarget !== null) {
+      setDictationTarget(null);
+    }
+  }, [dictation.listening, dictationTarget]);
+
+  useEffect(() => {
+    stopDictation();
     setEditingInfo(!(contact.name.trim() || contact.address.trim() || contact.territory.trim()));
-    setMobileTab('notes');
-    setShowVisitComposer(false);
+    setShowVisitComposer(visits.length === 0);
+    setShowPinnedEditor(false);
+    setEditingVisitId(null);
     setConfirmDelete(false);
     setOutcome(contact.status === 'bible_study' ? 'study_conducted' : 'spoke');
-    setVisitDate(getTodayISO());
+    setVisitDate(contact.visited_date || getTodayISO());
     setNextFollowUp(addDaysISO(7));
     setAddToCalendar(false);
     if (!contact.name.trim()) {
@@ -129,6 +186,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   }, [composerOpenSignal]);
 
   const due = formatRelativeDue(contact.next_visit_date);
+  const lastVisitedDisplay = contact.last_visit_date || contact.visited_date;
 
   const handlePublicationChange = (pubName: string) => {
     const preset = PUBLICATION_PRESETS.find((p) => p.name === pubName);
@@ -156,13 +214,19 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     });
   };
 
-  const handleToggleCheckbox = (lineIndex: number) => {
+  const handleTogglePinnedCheckbox = (lineIndex: number) => {
     const updated = toggleCheckboxAtLine(contact.notes, lineIndex);
     onUpdate(contact.id, { notes: updated });
   };
 
+  const handleToggleVisitCheckbox = (visit: Visit, lineIndex: number) => {
+    const updated = toggleCheckboxAtLine(visit.notes, lineIndex);
+    onUpdateVisit(visit.id, { notes: updated });
+  };
+
   const handleSubmitVisit = (e: React.FormEvent) => {
     e.preventDefault();
+    stopDictation();
     onAddVisit(
       {
         contact_id: contact.id,
@@ -180,6 +244,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
         nextVisitDate: nextFollowUp,
         scriptures,
         nextQuestion,
+        visitNotes,
       });
     }
     setScriptures('');
@@ -190,10 +255,61 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setShowVisitComposer(false);
   };
 
+  const startEditingVisit = (v: Visit) => {
+    stopDictation();
+    setEditingVisitId(v.id);
+    setEditVisitDate(v.visit_date);
+    setEditOutcome(v.outcome);
+    setEditScriptures(v.scriptures);
+    setEditPublication(v.publication_placed);
+    setEditNextQuestion(v.next_question);
+    setEditVisitNotes(v.notes);
+  };
+
+  const handleSaveEditedVisit = (e: React.FormEvent, visitId: string) => {
+    e.preventDefault();
+    stopDictation();
+    onUpdateVisit(visitId, {
+      visit_date: editVisitDate || getTodayISO(),
+      outcome: editOutcome,
+      scriptures: editScriptures.trim(),
+      publication_placed: editPublication.trim(),
+      next_question: editNextQuestion.trim(),
+      notes: editVisitNotes.trim(),
+    });
+    setEditingVisitId(null);
+  };
+
   const progressPct =
     contact.lesson_total > 0
       ? Math.min(100, Math.round((contact.lesson_progress / contact.lesson_total) * 100))
       : 0;
+
+  const renderDictateButton = (target: Exclude<DictationTarget, null>, label = 'Dictate') => {
+    if (!dictation.supported) return null;
+    const isThisRecording = dictation.listening && dictationTarget === target;
+    return (
+      <button
+        type="button"
+        className={`btn-dictate ${isThisRecording ? 'recording' : ''}`}
+        onClick={() => toggleDictationFor(target)}
+        title={isThisRecording ? 'Stop dictation' : 'Dictate with microphone'}
+      >
+        {isThisRecording ? (
+          <>
+            <span className="recording-dot" />
+            <Square size={11} />
+            Stop
+          </>
+        ) : (
+          <>
+            <Mic size={13} />
+            {label}
+          </>
+        )}
+      </button>
+    );
+  };
 
   return (
     <main className="detail-pane" aria-label="Contact details and notes">
@@ -228,13 +344,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             type="button"
             id="btn-log-visit-top"
             className="btn btn-primary btn-sm"
-            onClick={() => {
-              setMobileTab('visits');
-              setShowVisitComposer((v) => !v);
-            }}
+            onClick={() => setShowVisitComposer((v) => !v)}
           >
             <Plus size={14} />
-            Log Visit
+            New Visit / Note
           </button>
 
           <button
@@ -280,14 +393,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
 
       <div className="detail-scroll">
         <div className="detail-container">
-          {/* Header: Monogram, Name & Status Switcher */}
+          {/* Header: Monogram, Name with Pencil Cue & Status Switcher */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="contact-header-row">
-              <span
-                className="avatar-badge lg"
-                data-status={contact.status}
-                aria-hidden="true"
-              >
+              <span className="avatar-badge lg" data-status={contact.status} aria-hidden="true">
                 {(contact.name || '?')
                   .trim()
                   .split(/\s+/)
@@ -369,10 +478,30 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     title="Open address in Maps"
                   >
                     <Navigation size={12} />
-                    <span>
-                      {[contact.address, contact.apartment].filter(Boolean).join(', ')}
-                    </span>
+                    <span>{[contact.address, contact.apartment].filter(Boolean).join(', ')}</span>
                   </a>
+                )}
+                {lastVisitedDisplay && (
+                  <span className="info-pill">
+                    <CalendarCheck2 size={12} />
+                    <span>Visited {formatShortDate(lastVisitedDisplay)}</span>
+                  </span>
+                )}
+                {contact.next_visit_date && (
+                  <button
+                    type="button"
+                    id="btn-add-to-calendar"
+                    className="info-pill interactive"
+                    onClick={() =>
+                      downloadFollowUpICS(contact, {
+                        visitNotes: visits[0]?.notes || contact.notes,
+                      })
+                    }
+                    title="Add follow-up visit to your phone or computer calendar"
+                  >
+                    <CalendarPlus size={12} />
+                    <span>Next: {formatShortDate(contact.next_visit_date)} · Calendar</span>
+                  </button>
                 )}
                 {contact.best_time && (
                   <span className="info-pill">
@@ -396,25 +525,13 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     <span>{contact.phone}</span>
                   </a>
                 )}
-                {contact.next_visit_date && (
-                  <button
-                    type="button"
-                    id="btn-add-to-calendar"
-                    className="info-pill interactive"
-                    onClick={() => downloadFollowUpICS(contact)}
-                    title="Add follow-up visit to your phone or computer calendar"
-                  >
-                    <CalendarPlus size={12} />
-                    <span>Next: {formatShortDate(contact.next_visit_date)} · Calendar</span>
-                  </button>
-                )}
                 {!contact.address &&
+                  !lastVisitedDisplay &&
                   !contact.best_time &&
                   !contact.language &&
-                  !contact.phone &&
-                  !contact.next_visit_date && (
+                  !contact.phone && (
                     <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                      Add address, best time to visit, territory, or next visit date…
+                      Add address, best time, territory, or date visited…
                     </span>
                   )}
               </div>
@@ -438,7 +555,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             </div>
 
             {editingInfo && (
-              <div className="meta-grid" style={{ border: 'none', padding: '6px 0 0', background: 'transparent' }}>
+              <div
+                className="meta-grid"
+                style={{ border: 'none', padding: '6px 0 0', background: 'transparent' }}
+              >
                 <label className="meta-field">
                   <span className="meta-label">
                     <MapPin size={11} /> Address
@@ -515,17 +635,17 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
 
                 <label className="meta-field">
                   <span className="meta-label">
-                    <Calendar size={11} /> Next Visit
+                    <Calendar size={11} /> Date Visited
                   </span>
                   <input
                     type="date"
                     className="meta-input"
-                    value={contact.next_visit_date ?? ''}
-                    onChange={(e) =>
-                      onUpdate(contact.id, {
-                        next_visit_date: e.target.value ? e.target.value : null,
-                      })
-                    }
+                    value={contact.visited_date ?? ''}
+                    onChange={(e) => {
+                      const val = e.target.value ? e.target.value : null;
+                      onUpdate(contact.id, { visited_date: val });
+                      if (val) setVisitDate(val);
+                    }}
                   />
                 </label>
               </div>
@@ -584,7 +704,13 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                 </div>
               </div>
 
-              <div className="progress-track" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100}>
+              <div
+                className="progress-track"
+                role="progressbar"
+                aria-valuenow={progressPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
                 <div className="progress-fill" style={{ width: `${progressPct}%` }} />
               </div>
 
@@ -602,183 +728,44 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             </section>
           )}
 
-          {/* Mobile Notes / Visits Tab Switcher */}
-          <div className="mobile-section-tabs" role="tablist" aria-label="Contact sections">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mobileTab === 'notes'}
-              className={`mobile-section-tab ${mobileTab === 'notes' ? 'active' : ''}`}
-              onClick={() => setMobileTab('notes')}
-            >
-              <ScrollText size={14} />
-              Notes
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mobileTab === 'visits'}
-              className={`mobile-section-tab ${mobileTab === 'visits' ? 'active' : ''}`}
-              onClick={() => setMobileTab('visits')}
-            >
-              <BookMarked size={14} />
-              Visits ({visits.length})
-            </button>
-          </div>
-
-          {/* Obsidian-style Markdown Notes */}
-          <section
-            aria-label="Markdown notes"
-            className={mobileTab === 'visits' ? 'mobile-tab-hidden' : undefined}
-          >
+          {/* Unified Notes & Visit Log */}
+          <section aria-label="Notes and visit log">
             <div className="section-header">
               <h2 className="section-heading">
-                <ScrollText size={13} /> Notes
+                <BookMarked size={13} /> Notes &amp; Visits ({visits.length})
               </h2>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {notesDictation.supported && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {!contact.notes.trim() && !showPinnedEditor && (
                   <button
                     type="button"
-                    id="btn-dictate-notes"
-                    className={`btn-dictate ${notesDictation.listening ? 'recording' : ''}`}
-                    onClick={() => {
-                      if (!notesDictation.listening) {
-                        visitDictation.stop();
-                        setNotesMode('edit');
-                      }
-                      notesDictation.toggle();
-                    }}
-                    title={notesDictation.listening ? 'Stop dictation' : 'Dictate notes with microphone'}
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowPinnedEditor(true)}
                   >
-                    {notesDictation.listening ? (
-                      <>
-                        <span className="recording-dot" />
-                        <Square size={11} />
-                        Stop
-                      </>
-                    ) : (
-                      <>
-                        <Mic size={13} />
-                        Dictate
-                      </>
-                    )}
+                    <ScrollText size={13} /> Pinned Note
                   </button>
                 )}
-                <div className="segmented" role="tablist" aria-label="Notes mode">
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={notesMode === 'preview'}
-                    className={notesMode === 'preview' ? 'active' : ''}
-                    onClick={() => {
-                      notesDictation.stop();
-                      setNotesMode('preview');
-                    }}
-                  >
-                    Read
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={notesMode === 'edit'}
-                    className={notesMode === 'edit' ? 'active' : ''}
-                    onClick={() => setNotesMode('edit')}
-                  >
-                    Edit
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {notesDictation.error && (
-              <div className="error-banner" style={{ marginBottom: '8px' }}>
-                {notesDictation.error}
-              </div>
-            )}
-
-            {notesMode === 'edit' ? (
-              <div>
-                <textarea
-                  id="contact-notes-editor"
-                  className="notes-textarea"
-                  value={contact.notes}
-                  onChange={(e) => onUpdate(contact.id, { notes: e.target.value })}
-                  placeholder={`Write or dictate notes in Markdown…\n\n- Use [[Name]] to link to a family member or neighbor\n- Use #tags like #bible-study or #resurrection\n- Use > for scripture quotes and - [ ] for study prep checklists`}
-                />
-                {notesDictation.listening && (
-                  <div className="dictation-live" aria-live="polite">
-                    {notesDictation.interimText
-                      ? `Listening: "${notesDictation.interimText}"`
-                      : 'Listening… speak your notes now.'}
-                  </div>
-                )}
-                <div className="notes-hint">
-                  Supports Markdown headings, <code>&gt;</code> scripture quotes,{' '}
-                  <code>- [ ]</code> checklists, <code>[[Wikilinks]]</code>, and <code>#tags</code>.
-                </div>
-              </div>
-            ) : (
-              <div
-                className="notes-preview-box"
-                onDoubleClick={() => setNotesMode('edit')}
-                title="Double-click to edit notes"
-              >
-                <MarkdownPreview
-                  content={contact.notes}
-                  onClickTag={onClickTag}
-                  onClickWikilink={onClickWikilink}
-                  onToggleCheckbox={handleToggleCheckbox}
-                />
-              </div>
-            )}
-
-            {backlinks.length > 0 && (
-              <div className="backlinks-box">
-                <div className="section-heading">
-                  <Link2 size={13} /> Linked from ({backlinks.length})
-                </div>
-                <div className="backlinks-list">
-                  {backlinks.map((bl) => (
-                    <button
-                      key={bl.contact_id}
-                      type="button"
-                      className="backlink-item"
-                      onClick={() => onSelectContact(bl.contact_id)}
-                    >
-                      <span className="backlink-name">{bl.contact_name}</span>
-                      <span className="backlink-snippet">{bl.snippet}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </section>
-
-          {/* Visit Log Timeline */}
-          <section
-            aria-label="Visit history"
-            className={mobileTab === 'notes' ? 'mobile-tab-hidden' : undefined}
-          >
-            <div className="section-header">
-              <h2 className="section-heading">
-                <BookMarked size={13} /> Visit Log ({visits.length})
-              </h2>
-              {!showVisitComposer && (
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setShowVisitComposer(true)}
+                  onClick={() => setShowVisitComposer((v) => !v)}
                 >
-                  <Plus size={13} /> Add Entry
+                  {showVisitComposer ? 'Hide Form' : '+ Log Visit'}
                 </button>
-              )}
+              </div>
             </div>
 
+            {dictation.error && (
+              <div className="error-banner" style={{ marginBottom: '12px' }}>
+                {dictation.error}
+              </div>
+            )}
+
+            {/* Combined New Visit & Note Composer */}
             {showVisitComposer && (
               <form className="visit-composer" onSubmit={handleSubmitVisit}>
                 <div className="form-grid-2">
                   <label className="field-group">
-                    <span className="field-label">Visit Date</span>
+                    <span className="field-label">Date Visited</span>
                     <input
                       type="date"
                       className="input"
@@ -802,6 +789,31 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                       ))}
                     </select>
                   </label>
+                </div>
+
+                {/* Combined Notes Field with Dictation & Markdown */}
+                <div className="field-group">
+                  <div className="field-label-row">
+                    <label htmlFor="visit-notes-textarea" className="field-label">
+                      Visit Notes (Markdown, #tags, [[Wikilinks]])
+                    </label>
+                    {renderDictateButton('new_visit_notes', 'Dictate Notes')}
+                  </div>
+                  <textarea
+                    id="visit-notes-textarea"
+                    className="textarea"
+                    rows={4}
+                    placeholder="Write or dictate what you talked about, family details, #tags, [[linked names]], or - [ ] study prep…"
+                    value={visitNotes}
+                    onChange={(e) => setVisitNotes(e.target.value)}
+                  />
+                  {dictation.listening && dictationTarget === 'new_visit_notes' && (
+                    <div className="dictation-live" aria-live="polite">
+                      {dictation.interimText
+                        ? `Listening: "${dictation.interimText}"`
+                        : 'Listening… speak your notes now.'}
+                    </div>
+                  )}
                 </div>
 
                 <div className="form-grid-2">
@@ -828,70 +840,27 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   </label>
                 </div>
 
-                <label className="field-group">
-                  <span className="field-label">Question / Topic for Next Visit</span>
+                <div className="field-group">
+                  <div className="field-label-row">
+                    <label htmlFor="visit-next-question" className="field-label">
+                      Next Question / Follow-up Topic
+                    </label>
+                    {renderDictateButton('new_visit_question', 'Dictate')}
+                  </div>
                   <input
+                    id="visit-next-question"
                     type="text"
                     className="input"
                     placeholder="What will you follow up on next time?"
                     value={nextQuestion}
                     onChange={(e) => setNextQuestion(e.target.value)}
                   />
-                </label>
-
-                <div className="field-group">
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      gap: '8px',
-                    }}
-                  >
-                    <label htmlFor="visit-notes-textarea" className="field-label">
-                      Visit Notes
-                    </label>
-                    {visitDictation.supported && (
-                      <button
-                        type="button"
-                        className={`btn-dictate ${visitDictation.listening ? 'recording' : ''}`}
-                        onClick={() => {
-                          if (!visitDictation.listening) notesDictation.stop();
-                          visitDictation.toggle();
-                        }}
-                      >
-                        {visitDictation.listening ? (
-                          <>
-                            <span className="recording-dot" />
-                            <Square size={11} />
-                            Stop
-                          </>
-                        ) : (
-                          <>
-                            <Mic size={13} />
-                            Dictate
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                  <textarea
-                    id="visit-notes-textarea"
-                    className="textarea"
-                    rows={3}
-                    placeholder="Key points from the conversation, reactions, family details…"
-                    value={visitNotes}
-                    onChange={(e) => setVisitNotes(e.target.value)}
-                  />
-                  {visitDictation.listening && (
+                  {dictation.listening && dictationTarget === 'new_visit_question' && (
                     <div className="dictation-live" aria-live="polite">
-                      {visitDictation.interimText
-                        ? `Listening: "${visitDictation.interimText}"`
-                        : 'Listening… speak your visit notes now.'}
+                      {dictation.interimText
+                        ? `Listening: "${dictation.interimText}"`
+                        : 'Listening… speak your follow-up question.'}
                     </div>
-                  )}
-                  {visitDictation.error && (
-                    <div className="error-banner">{visitDictation.error}</div>
                   )}
                 </div>
 
@@ -902,6 +871,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     alignItems: 'flex-end',
                     justifyContent: 'space-between',
                     gap: '10px',
+                    paddingTop: '4px',
                   }}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
@@ -940,83 +910,308 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     <button
                       type="button"
                       className="btn btn-ghost"
-                      onClick={() => setShowVisitComposer(false)}
+                      onClick={() => {
+                        stopDictation();
+                        setShowVisitComposer(false);
+                      }}
                     >
                       Cancel
                     </button>
                     <button type="submit" id="btn-save-visit" className="btn btn-primary">
-                      Save Visit
+                      Save Visit &amp; Note
                     </button>
                   </div>
                 </div>
               </form>
             )}
 
-            {visits.length === 0 ? (
-              <div
-                style={{
-                  padding: '22px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px dashed var(--border-strong)',
-                  textAlign: 'center',
-                  color: 'var(--text-muted)',
-                  fontSize: '13.5px',
-                }}
-              >
-                No visits logged yet. Click <strong>Log Visit</strong> to record scriptures,
-                placements, and your next follow-up question.
+            {/* Optional Pinned Background / Overview Note (for family details, prep checklists, etc.) */}
+            {(contact.notes.trim() || showPinnedEditor) && (
+              <div className="pinned-note-card">
+                <div className="visit-card-header">
+                  <span className="section-heading" style={{ color: 'var(--accent-text)' }}>
+                    <Pin size={12} /> Pinned Background &amp; Prep
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {showPinnedEditor && renderDictateButton('pinned_note', 'Dictate')}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        if (showPinnedEditor) stopDictation();
+                        setShowPinnedEditor((v) => !v);
+                      }}
+                    >
+                      {showPinnedEditor ? (
+                        <>
+                          <Check size={13} /> Done
+                        </>
+                      ) : (
+                        <>
+                          <Pencil size={12} /> Edit
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {showPinnedEditor ? (
+                  <div>
+                    <textarea
+                      id="contact-notes-editor"
+                      className="notes-textarea"
+                      style={{ minHeight: '130px' }}
+                      value={contact.notes}
+                      onChange={(e) => onUpdate(contact.id, { notes: e.target.value })}
+                      placeholder="Background info, family names like [[Carlos Santos]], #tags, > scripture quotes, or - [ ] prep checklists…"
+                    />
+                    {dictation.listening && dictationTarget === 'pinned_note' && (
+                      <div className="dictation-live" aria-live="polite">
+                        {dictation.interimText
+                          ? `Listening: "${dictation.interimText}"`
+                          : 'Listening… speak your background notes.'}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div onDoubleClick={() => setShowPinnedEditor(true)}>
+                    <MarkdownPreview
+                      content={contact.notes}
+                      onClickTag={onClickTag}
+                      onClickWikilink={onClickWikilink}
+                      onToggleCheckbox={handleTogglePinnedCheckbox}
+                    />
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Chronological Visit & Note Cards */}
+            {visits.length === 0 ? (
+              !showVisitComposer && (
+                <div
+                  style={{
+                    padding: '22px 16px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px dashed var(--border-strong)',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '13.5px',
+                  }}
+                >
+                  No visits logged yet. Tap <strong>+ Log Visit</strong> to write or dictate notes
+                  and schedule your next follow-up.
+                </div>
+              )
             ) : (
               <div className="visit-timeline">
-                {visits.map((v) => (
-                  <article key={v.id} className="visit-card">
-                    <div className="visit-card-header">
-                      <div className="visit-card-meta">
-                        <span className="visit-date">{formatShortDate(v.visit_date)}</span>
-                        <span className="outcome-pill" data-outcome={v.outcome}>
-                          {OUTCOME_META[v.outcome]?.label ?? v.outcome}
-                        </span>
+                {visits.map((v) =>
+                  editingVisitId === v.id ? (
+                    <form
+                      key={v.id}
+                      className="visit-composer"
+                      style={{ marginBottom: 0 }}
+                      onSubmit={(e) => handleSaveEditedVisit(e, v.id)}
+                    >
+                      <div className="form-grid-2">
+                        <label className="field-group">
+                          <span className="field-label">Date Visited</span>
+                          <input
+                            type="date"
+                            className="input"
+                            value={editVisitDate}
+                            onChange={(e) => setEditVisitDate(e.target.value)}
+                            required
+                          />
+                        </label>
+                        <label className="field-group">
+                          <span className="field-label">Outcome</span>
+                          <select
+                            className="select"
+                            value={editOutcome}
+                            onChange={(e) => setEditOutcome(e.target.value as VisitOutcome)}
+                          >
+                            {Object.entries(OUTCOME_META).map(([key, meta]) => (
+                              <option key={key} value={key}>
+                                {meta.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                       </div>
-                      <button
-                        type="button"
-                        className="btn-icon"
-                        onClick={() => onDeleteVisit(v.id)}
-                        title="Remove visit entry"
-                        aria-label="Remove visit entry"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
 
-                    {(v.scriptures || v.publication_placed) && (
-                      <div className="visit-details-row">
-                        {v.scriptures && (
-                          <span className="visit-detail-item">
-                            <Sparkles size={13} style={{ color: 'var(--accent)' }} />
-                            <strong>{v.scriptures}</strong>
-                          </span>
+                      <div className="field-group">
+                        <div className="field-label-row">
+                          <span className="field-label">Visit Notes</span>
+                          {renderDictateButton('edit_visit_notes', 'Dictate')}
+                        </div>
+                        <textarea
+                          className="textarea"
+                          rows={4}
+                          value={editVisitNotes}
+                          onChange={(e) => setEditVisitNotes(e.target.value)}
+                        />
+                        {dictation.listening && dictationTarget === 'edit_visit_notes' && (
+                          <div className="dictation-live" aria-live="polite">
+                            {dictation.interimText
+                              ? `Listening: "${dictation.interimText}"`
+                              : 'Listening… speak to append to this note.'}
+                          </div>
                         )}
-                        {v.publication_placed && (
-                          <span className="visit-detail-item">
-                            <BookOpen size={13} style={{ color: 'var(--text-muted)' }} />
-                            <span>{v.publication_placed}</span>
-                          </span>
+                      </div>
+
+                      <div className="form-grid-2">
+                        <label className="field-group">
+                          <span className="field-label">Scriptures</span>
+                          <input
+                            type="text"
+                            className="input"
+                            value={editScriptures}
+                            onChange={(e) => setEditScriptures(e.target.value)}
+                          />
+                        </label>
+                        <label className="field-group">
+                          <span className="field-label">Publication / Video</span>
+                          <input
+                            type="text"
+                            className="input"
+                            value={editPublication}
+                            onChange={(e) => setEditPublication(e.target.value)}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="field-group">
+                        <div className="field-label-row">
+                          <span className="field-label">Next Question</span>
+                          {renderDictateButton('edit_visit_question', 'Dictate')}
+                        </div>
+                        <input
+                          type="text"
+                          className="input"
+                          value={editNextQuestion}
+                          onChange={(e) => setEditNextQuestion(e.target.value)}
+                        />
+                        {dictation.listening && dictationTarget === 'edit_visit_question' && (
+                          <div className="dictation-live" aria-live="polite">
+                            {dictation.interimText
+                              ? `Listening: "${dictation.interimText}"`
+                              : 'Listening…'}
+                          </div>
                         )}
                       </div>
-                    )}
 
-                    {v.next_question && (
-                      <div className="next-question-banner">
-                        <HelpCircle size={15} style={{ color: 'var(--warm)', flexShrink: 0, marginTop: '2px' }} />
-                        <span>
-                          <strong>Next:</strong> {v.next_question}
-                        </span>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            stopDictation();
+                            setEditingVisitId(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button type="submit" className="btn btn-primary btn-sm">
+                          Save Changes
+                        </button>
                       </div>
-                    )}
+                    </form>
+                  ) : (
+                    <article key={v.id} className="visit-card">
+                      <div className="visit-card-header">
+                        <div className="visit-card-meta">
+                          <span className="visit-date">{formatShortDate(v.visit_date)}</span>
+                          <span className="outcome-pill" data-outcome={v.outcome}>
+                            {OUTCOME_META[v.outcome]?.label ?? v.outcome}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            onClick={() => startEditingVisit(v)}
+                            title="Edit or dictate into this visit note"
+                            aria-label="Edit visit note"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            onClick={() => onDeleteVisit(v.id)}
+                            title="Remove visit entry"
+                            aria-label="Remove visit entry"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
 
-                    {v.notes && <div className="visit-notes">{v.notes}</div>}
-                  </article>
-                ))}
+                      {(v.scriptures || v.publication_placed) && (
+                        <div className="visit-details-row">
+                          {v.scriptures && (
+                            <span className="visit-detail-item">
+                              <Sparkles size={13} style={{ color: 'var(--accent)' }} />
+                              <strong>{v.scriptures}</strong>
+                            </span>
+                          )}
+                          {v.publication_placed && (
+                            <span className="visit-detail-item">
+                              <BookOpen size={13} style={{ color: 'var(--text-muted)' }} />
+                              <span>{v.publication_placed}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {v.next_question && (
+                        <div className="next-question-banner">
+                          <HelpCircle
+                            size={15}
+                            style={{ color: 'var(--warm)', flexShrink: 0, marginTop: '2px' }}
+                          />
+                          <span>
+                            <strong>Next:</strong> {v.next_question}
+                          </span>
+                        </div>
+                      )}
+
+                      {v.notes && (
+                        <div className="visit-notes">
+                          <MarkdownPreview
+                            content={v.notes}
+                            onClickTag={onClickTag}
+                            onClickWikilink={onClickWikilink}
+                            onToggleCheckbox={(lineIdx) => handleToggleVisitCheckbox(v, lineIdx)}
+                          />
+                        </div>
+                      )}
+                    </article>
+                  )
+                )}
+              </div>
+            )}
+
+            {/* Incoming [[Wikilink]] Backlinks */}
+            {backlinks.length > 0 && (
+              <div className="backlinks-box">
+                <div className="section-heading">
+                  <Link2 size={13} /> Linked from ({backlinks.length})
+                </div>
+                <div className="backlinks-list">
+                  {backlinks.map((bl) => (
+                    <button
+                      key={bl.contact_id}
+                      type="button"
+                      className="backlink-item"
+                      onClick={() => onSelectContact(bl.contact_id)}
+                    >
+                      <span className="backlink-name">{bl.contact_name}</span>
+                      <span className="backlink-snippet">{bl.snippet}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </section>

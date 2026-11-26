@@ -52,6 +52,7 @@ describe('markdown utilities', () => {
       current_lesson: 'Lesson 04',
       lesson_progress: 4,
       lesson_total: 60,
+      visited_date: '2026-11-20',
       next_visit_date: '2026-12-01',
       notes: 'Lives with [[Carlos Santos]] #bible-study',
       pinned: true,

@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS contacts (
   current_lesson TEXT NOT NULL DEFAULT '',
   lesson_progress INTEGER NOT NULL DEFAULT 0,
   lesson_total INTEGER NOT NULL DEFAULT 60,
+  visited_date TEXT,
   next_visit_date TEXT,
   notes TEXT NOT NULL DEFAULT '',
   pinned INTEGER NOT NULL DEFAULT 0,
@@ -51,6 +52,17 @@ CREATE INDEX IF NOT EXISTS idx_visits_contact_date ON visits(contact_id, visit_d
 CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status);
 CREATE INDEX IF NOT EXISTS idx_contacts_next_visit ON contacts(next_visit_date);
 `;
+
+function applySchemaAndMigrations(db: Database): void {
+  db.run(SCHEMA_SQL);
+  const info = db.exec('PRAGMA table_info(contacts);');
+  const columns = new Set<string>(
+    (info[0]?.values ?? []).map((row) => String(row[1] ?? ''))
+  );
+  if (!columns.has('visited_date')) {
+    db.run('ALTER TABLE contacts ADD COLUMN visited_date TEXT;');
+  }
+}
 
 export class SQLiteClient {
   private sql: SqlJsStatic | null = null;
@@ -84,15 +96,15 @@ export class SQLiteClient {
     if (existingBytes && existingBytes.byteLength > 0) {
       try {
         this.db = new this.sql.Database(existingBytes);
-        this.db.run(SCHEMA_SQL);
+        applySchemaAndMigrations(this.db);
       } catch (err) {
         console.warn('Stored SQLite binary could not be loaded, initializing fresh DB:', err);
         this.db = new this.sql.Database();
-        this.db.run(SCHEMA_SQL);
+        applySchemaAndMigrations(this.db);
       }
     } else {
       this.db = new this.sql.Database();
-      this.db.run(SCHEMA_SQL);
+      applySchemaAndMigrations(this.db);
       await this.flushNow();
     }
 
@@ -105,7 +117,7 @@ export class SQLiteClient {
   initWithDatabase(sql: SqlJsStatic, db?: Database): Database {
     this.sql = sql;
     this.db = db ?? new sql.Database();
-    this.db.run(SCHEMA_SQL);
+    applySchemaAndMigrations(this.db);
     return this.db;
   }
 
@@ -154,7 +166,7 @@ export class SQLiteClient {
       if (status !== 'ok') {
         throw new Error('SQLite integrity check failed.');
       }
-      candidate.run(SCHEMA_SQL);
+      applySchemaAndMigrations(candidate);
     } catch (err) {
       candidate.close();
       throw new Error(
@@ -180,7 +192,7 @@ export class SQLiteClient {
     }
     await clearDatabaseBytes();
     this.db = new this.sql.Database();
-    this.db.run(SCHEMA_SQL);
+    applySchemaAndMigrations(this.db);
     await this.flushNow();
   }
 

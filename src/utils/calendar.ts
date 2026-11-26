@@ -29,6 +29,7 @@ export interface CalendarOverride {
   nextVisitDate?: string | null;
   scriptures?: string;
   nextQuestion?: string;
+  visitNotes?: string;
 }
 
 export function buildFollowUpICS(
@@ -48,6 +49,7 @@ export function buildFollowUpICS(
 
   const nextQuestion = override?.nextQuestion?.trim() || contact.last_next_question.trim();
   const scriptures = override?.scriptures?.trim() || contact.last_scriptures.trim();
+  const visitNotes = override?.visitNotes?.trim() || contact.notes.trim();
 
   const descParts = [
     contact.best_time ? `Best time: ${contact.best_time}` : null,
@@ -57,6 +59,7 @@ export function buildFollowUpICS(
       : null,
     scriptures ? `Last scriptures: ${scriptures}` : null,
     nextQuestion ? `Next question: ${nextQuestion}` : null,
+    visitNotes ? `\nVisit notes:\n${visitNotes}` : null,
   ].filter(Boolean) as string[];
 
   const lines = [

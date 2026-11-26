@@ -55,6 +55,7 @@ function rowToContact(row: Record<string, unknown>): Contact {
     current_lesson: String(row.current_lesson ?? ''),
     lesson_progress: Number(row.lesson_progress ?? 0),
     lesson_total: Number(row.lesson_total ?? 60),
+    visited_date: row.visited_date ? String(row.visited_date) : null,
     next_visit_date: row.next_visit_date ? String(row.next_visit_date) : null,
     notes: String(row.notes ?? ''),
     pinned: Boolean(row.pinned),
@@ -201,6 +202,7 @@ export class FieldnotesRepository {
       current_lesson: partial.current_lesson ?? '',
       lesson_progress: partial.lesson_progress ?? 0,
       lesson_total: partial.lesson_total ?? 60,
+      visited_date: partial.visited_date !== undefined ? partial.visited_date : getTodayISO(),
       next_visit_date: partial.next_visit_date ?? null,
       notes: partial.notes ?? '',
       pinned: partial.pinned ?? false,
@@ -211,9 +213,9 @@ export class FieldnotesRepository {
     this.db.run(
       `INSERT INTO contacts (
         id, name, status, address, apartment, territory, best_time, language, phone,
-        publication, current_lesson, lesson_progress, lesson_total, next_visit_date,
-        notes, pinned, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        publication, current_lesson, lesson_progress, lesson_total, visited_date,
+        next_visit_date, notes, pinned, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         contact.id,
         contact.name,
@@ -228,6 +230,7 @@ export class FieldnotesRepository {
         contact.current_lesson,
         contact.lesson_progress,
         contact.lesson_total,
+        contact.visited_date,
         contact.next_visit_date,
         contact.notes,
         contact.pinned ? 1 : 0,
@@ -258,7 +261,7 @@ export class FieldnotesRepository {
         name = ?, status = ?, address = ?, apartment = ?, territory = ?,
         best_time = ?, language = ?, phone = ?, publication = ?,
         current_lesson = ?, lesson_progress = ?, lesson_total = ?,
-        next_visit_date = ?, notes = ?, pinned = ?, updated_at = ?
+        visited_date = ?, next_visit_date = ?, notes = ?, pinned = ?, updated_at = ?
       WHERE id = ?`,
       [
         updated.name,
@@ -273,6 +276,7 @@ export class FieldnotesRepository {
         updated.current_lesson,
         updated.lesson_progress,
         updated.lesson_total,
+        updated.visited_date,
         updated.next_visit_date,
         updated.notes,
         updated.pinned ? 1 : 0,
@@ -347,9 +351,58 @@ export class FieldnotesRepository {
       ]
     );
 
-    this.db.run(`UPDATE contacts SET updated_at = ? WHERE id = ?`, [now, visit.contact_id]);
+    this.db.run(
+      `UPDATE contacts
+       SET visited_date = CASE
+         WHEN visited_date IS NULL OR ? >= visited_date THEN ?
+         ELSE visited_date
+       END,
+       updated_at = ?
+       WHERE id = ?`,
+      [visit.visit_date, visit.visit_date, now, visit.contact_id]
+    );
     this.markModified();
     return visit;
+  }
+
+  updateVisit(
+    visitId: string,
+    patch: Partial<Omit<Visit, 'id' | 'contact_id' | 'created_at'>>
+  ): Visit | null {
+    const rows = queryAll<Record<string, unknown>>(
+      this.db,
+      `SELECT * FROM visits WHERE id = ?`,
+      [visitId]
+    );
+    if (!rows[0]) return null;
+    const existing = rowToVisit(rows[0]);
+    const updated: Visit = {
+      ...existing,
+      ...patch,
+    };
+
+    this.db.run(
+      `UPDATE visits SET
+        visit_date = ?, outcome = ?, scriptures = ?, publication_placed = ?,
+        next_question = ?, notes = ?
+      WHERE id = ?`,
+      [
+        updated.visit_date,
+        updated.outcome,
+        updated.scriptures,
+        updated.publication_placed,
+        updated.next_question,
+        updated.notes,
+        visitId,
+      ]
+    );
+
+    this.db.run(`UPDATE contacts SET updated_at = ? WHERE id = ?`, [
+      new Date().toISOString(),
+      updated.contact_id,
+    ]);
+    this.markModified();
+    return updated;
   }
 
   deleteVisit(visitId: string): void {
@@ -437,15 +490,30 @@ export class FieldnotesRepository {
       `SELECT id, name, status, notes FROM contacts WHERE id != ?`,
       [contactId]
     );
+    const otherVisits = queryAll<{ contact_id: string; notes: string }>(
+      this.db,
+      `SELECT contact_id, notes FROM visits WHERE contact_id != ?`,
+      [contactId]
+    );
+    const visitsByContact = new Map<string, string[]>();
+    for (const v of otherVisits) {
+      const list = visitsByContact.get(v.contact_id) ?? [];
+      list.push(v.notes);
+      visitsByContact.set(v.contact_id, list);
+    }
 
     const results: BacklinkItem[] = [];
     for (const row of others) {
-      const links = extractWikilinks(row.notes);
+      const combinedNotes = [row.notes, ...(visitsByContact.get(row.id) ?? [])]
+        .filter(Boolean)
+        .join('\n');
+      const links = extractWikilinks(combinedNotes);
       if (links.some((l) => l.toLowerCase() === targetLower)) {
         const line =
-          row.notes
+          combinedNotes
             .split('\n')
-            .find((l) => l.toLowerCase().includes(`[[${targetLower}]]`)) ?? row.notes.slice(0, 100);
+            .find((l) => l.toLowerCase().includes(`[[${targetLower}]]`)) ??
+          combinedNotes.slice(0, 100);
         results.push({
           contact_id: row.id,
           contact_name: row.name,

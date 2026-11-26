@@ -228,9 +228,17 @@ export function useFieldnotes() {
         repository.updateContact(input.contact_id, { next_visit_date: nextVisitDate });
       }
       refreshAll();
-      showToast('Visit logged');
+      showToast('Visit & note saved');
     },
     [refreshAll, showToast]
+  );
+
+  const updateVisit = useCallback(
+    (visitId: string, patch: Partial<Omit<Visit, 'id' | 'contact_id' | 'created_at'>>) => {
+      repository.updateVisit(visitId, patch);
+      refreshAll();
+    },
+    [refreshAll]
   );
 
   const deleteVisit = useCallback(
@@ -370,6 +378,7 @@ export function useFieldnotes() {
     updateContact,
     deleteContact,
     addVisit,
+    updateVisit,
     deleteVisit,
     openWikilink,
     loadSampleData,

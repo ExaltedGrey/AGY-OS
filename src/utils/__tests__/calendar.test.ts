@@ -16,6 +16,7 @@ const sampleContact: ContactSummary = {
   current_lesson: 'Lesson 04',
   lesson_progress: 4,
   lesson_total: 60,
+  visited_date: '2026-11-20',
   next_visit_date: '2026-12-31',
   notes: '',
   pinned: false,
@@ -42,17 +43,19 @@ describe('buildFollowUpICS', () => {
     expect(ics).toContain('END:VCALENDAR\r\n');
   });
 
-  it('uses override follow-up date and question when provided from a fresh visit', () => {
+  it('uses override follow-up date, question, and visit notes when provided from a fresh visit', () => {
     const ics = buildFollowUpICS(sampleContact, {
       nextVisitDate: '2027-01-10',
       scriptures: 'Rev 21:4',
       nextQuestion: 'How will God end suffering?',
+      visitNotes: 'Warm talk on the porch. Asked to bring large-print brochure.',
     });
 
     expect(ics).toContain('DTSTART;VALUE=DATE:20270110\r\n');
     expect(ics).toContain('DTEND;VALUE=DATE:20270111\r\n');
     expect(ics).toContain('Last scriptures: Rev 21:4');
     expect(ics).toContain('Next question: How will God end suffering?');
+    expect(ics).toContain('Visit notes:\\nWarm talk on the porch. Asked to bring large-print brochure.');
   });
 
   it('throws if no next visit date is available', () => {
