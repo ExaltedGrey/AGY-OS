@@ -8,15 +8,18 @@ import {
   HelpCircle,
   Link2,
   MapPin,
+  Mic,
   Minus,
   Phone,
   Pin,
   Plus,
   ScrollText,
   Sparkles,
+  Square,
   Trash2,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { appendDictatedText, useDictation } from '../hooks/useDictation';
 import {
   OUTCOME_META,
   PUBLICATION_PRESETS,
@@ -81,7 +84,17 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [visitNotes, setVisitNotes] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState(addDaysISO(7));
 
+  const notesDictation = useDictation((spoken) => {
+    onUpdate(contact.id, { notes: appendDictatedText(contact.notes, spoken) });
+  });
+
+  const visitDictation = useDictation((spoken) => {
+    setVisitNotes((prev) => appendDictatedText(prev, spoken));
+  });
+
   useEffect(() => {
+    notesDictation.stop();
+    visitDictation.stop();
     setNotesMode(contact.notes.trim() ? 'preview' : 'edit');
     setShowVisitComposer(false);
     setConfirmDelete(false);
@@ -452,27 +465,66 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
               <h2 className="section-heading">
                 <ScrollText size={13} /> Notes
               </h2>
-              <div className="segmented" role="tablist" aria-label="Notes mode">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={notesMode === 'preview'}
-                  className={notesMode === 'preview' ? 'active' : ''}
-                  onClick={() => setNotesMode('preview')}
-                >
-                  Read
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={notesMode === 'edit'}
-                  className={notesMode === 'edit' ? 'active' : ''}
-                  onClick={() => setNotesMode('edit')}
-                >
-                  Edit
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {notesDictation.supported && (
+                  <button
+                    type="button"
+                    id="btn-dictate-notes"
+                    className={`btn-dictate ${notesDictation.listening ? 'recording' : ''}`}
+                    onClick={() => {
+                      if (!notesDictation.listening) {
+                        visitDictation.stop();
+                        setNotesMode('edit');
+                      }
+                      notesDictation.toggle();
+                    }}
+                    title={notesDictation.listening ? 'Stop dictation' : 'Dictate notes with microphone'}
+                  >
+                    {notesDictation.listening ? (
+                      <>
+                        <span className="recording-dot" />
+                        <Square size={11} />
+                        Stop
+                      </>
+                    ) : (
+                      <>
+                        <Mic size={13} />
+                        Dictate
+                      </>
+                    )}
+                  </button>
+                )}
+                <div className="segmented" role="tablist" aria-label="Notes mode">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={notesMode === 'preview'}
+                    className={notesMode === 'preview' ? 'active' : ''}
+                    onClick={() => {
+                      notesDictation.stop();
+                      setNotesMode('preview');
+                    }}
+                  >
+                    Read
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={notesMode === 'edit'}
+                    className={notesMode === 'edit' ? 'active' : ''}
+                    onClick={() => setNotesMode('edit')}
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
             </div>
+
+            {notesDictation.error && (
+              <div className="error-banner" style={{ marginBottom: '8px' }}>
+                {notesDictation.error}
+              </div>
+            )}
 
             {notesMode === 'edit' ? (
               <div>
@@ -481,8 +533,15 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   className="notes-textarea"
                   value={contact.notes}
                   onChange={(e) => onUpdate(contact.id, { notes: e.target.value })}
-                  placeholder={`Write notes in Markdown…\n\n- Use [[Name]] to link to a family member or neighbor\n- Use #tags like #bible-study or #resurrection\n- Use > for scripture quotes and - [ ] for study prep checklists`}
+                  placeholder={`Write or dictate notes in Markdown…\n\n- Use [[Name]] to link to a family member or neighbor\n- Use #tags like #bible-study or #resurrection\n- Use > for scripture quotes and - [ ] for study prep checklists`}
                 />
+                {notesDictation.listening && (
+                  <div className="dictation-live" aria-live="polite">
+                    {notesDictation.interimText
+                      ? `Listening: "${notesDictation.interimText}"`
+                      : 'Listening… speak your notes now.'}
+                  </div>
+                )}
                 <div className="notes-hint">
                   Supports Markdown headings, <code>&gt;</code> scripture quotes,{' '}
                   <code>- [ ]</code> checklists, <code>[[Wikilinks]]</code>, and <code>#tags</code>.
@@ -607,16 +666,61 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   />
                 </label>
 
-                <label className="field-group">
-                  <span className="field-label">Visit Notes</span>
+                <div className="field-group">
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                    }}
+                  >
+                    <label htmlFor="visit-notes-textarea" className="field-label">
+                      Visit Notes
+                    </label>
+                    {visitDictation.supported && (
+                      <button
+                        type="button"
+                        className={`btn-dictate ${visitDictation.listening ? 'recording' : ''}`}
+                        onClick={() => {
+                          if (!visitDictation.listening) notesDictation.stop();
+                          visitDictation.toggle();
+                        }}
+                      >
+                        {visitDictation.listening ? (
+                          <>
+                            <span className="recording-dot" />
+                            <Square size={11} />
+                            Stop
+                          </>
+                        ) : (
+                          <>
+                            <Mic size={13} />
+                            Dictate
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                   <textarea
+                    id="visit-notes-textarea"
                     className="textarea"
                     rows={3}
                     placeholder="Key points from the conversation, reactions, family details…"
                     value={visitNotes}
                     onChange={(e) => setVisitNotes(e.target.value)}
                   />
-                </label>
+                  {visitDictation.listening && (
+                    <div className="dictation-live" aria-live="polite">
+                      {visitDictation.interimText
+                        ? `Listening: "${visitDictation.interimText}"`
+                        : 'Listening… speak your visit notes now.'}
+                    </div>
+                  )}
+                  {visitDictation.error && (
+                    <div className="error-banner">{visitDictation.error}</div>
+                  )}
+                </div>
 
                 <div
                   style={{

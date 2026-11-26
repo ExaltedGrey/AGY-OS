@@ -1176,3 +1176,62 @@
   color: var(--text-primary);
 }
 
+/* Voice Dictation Controls */
+.btn-dictate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.btn-dictate:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.btn-dictate.recording {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.recording-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+  animation: pulseMic 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseMic {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.82);
+  }
+}
+
+.dictation-live {
+  margin-top: 6px;
+  padding: 7px 11px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-list);
+  border: 1px dashed var(--border-strong);
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+
