@@ -1,4 +1,5 @@
 import { STATUS_META, type ContactSummary } from '../types/models';
+import { buildMapsUrl, formatCoordinates, hasCoordinates } from './location';
 
 function escapeICSText(value: string): string {
   return value
@@ -45,7 +46,11 @@ export function buildFollowUpICS(
   const endStr = formatDateCompact(addOneDayISO(dateISO));
   const statusLabel = STATUS_META[contact.status]?.label ?? 'Return Visit';
   const summary = `${statusLabel} — ${contact.name.trim() || 'Contact'}`;
-  const location = [contact.address, contact.apartment].filter(Boolean).join(', ');
+  const coords = hasCoordinates(contact)
+    ? formatCoordinates(contact.gps_lat, contact.gps_lng)
+    : '';
+  const location = [contact.address, contact.apartment].filter(Boolean).join(', ') || coords;
+  const mapsUrl = buildMapsUrl(contact);
 
   const nextQuestion = override?.nextQuestion?.trim() || contact.last_next_question.trim();
   const scriptures = override?.scriptures?.trim() || contact.last_scriptures.trim();
@@ -54,6 +59,8 @@ export function buildFollowUpICS(
   const descParts = [
     contact.best_time ? `Best time: ${contact.best_time}` : null,
     contact.territory ? `Territory: ${contact.territory}` : null,
+    coords ? `GPS: ${coords}` : null,
+    mapsUrl ? `Maps: ${mapsUrl}` : null,
     contact.publication
       ? `Study: ${contact.publication}${contact.current_lesson ? ` (${contact.current_lesson})` : ''}`
       : null,
@@ -75,6 +82,7 @@ export function buildFollowUpICS(
     `DTEND;VALUE=DATE:${endStr}`,
     `SUMMARY:${escapeICSText(summary)}`,
     location ? `LOCATION:${escapeICSText(location)}` : null,
+    hasCoordinates(contact) ? `GEO:${contact.gps_lat};${contact.gps_lng}` : null,
     descParts.length > 0 ? `DESCRIPTION:${escapeICSText(descParts.join('\n'))}` : null,
     'BEGIN:VALARM',
     'ACTION:DISPLAY',

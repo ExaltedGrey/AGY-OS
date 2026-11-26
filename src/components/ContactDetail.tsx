@@ -13,6 +13,7 @@ import {
   Globe,
   HelpCircle,
   Link2,
+  LocateFixed,
   Mail,
   MapPin,
   Mic,
@@ -27,6 +28,7 @@ import {
   Sparkles,
   Square,
   Trash2,
+  X,
 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { appendDictatedText, useDictation } from '../hooks/useDictation';
@@ -44,6 +46,13 @@ import {
 } from '../types/models';
 import { downloadFollowUpICS } from '../utils/calendar';
 import { addDaysISO, formatRelativeDue, formatShortDate, getTodayISO } from '../utils/date';
+import {
+  buildMapsUrl,
+  captureCurrentGPS,
+  formatCoordinates,
+  hasCoordinates,
+  isGeolocationSupported,
+} from '../utils/location';
 import { toggleCheckboxAtLine } from '../utils/markdown';
 import {
   buildContactMailtoUrl,
@@ -107,6 +116,8 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [locatingGps, setLocatingGps] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
 
   // New Visit & Note composer fields
@@ -183,6 +194,8 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setEditingVisitId(null);
     setConfirmDelete(false);
     setShareMenuOpen(false);
+    setGpsError(null);
+    setLocatingGps(false);
     setOutcome(contact.status === 'bible_study' ? 'study_conducted' : 'spoke');
     setVisitDate(contact.visited_date || getTodayISO());
     setNextFollowUp(addDaysISO(7));
@@ -211,6 +224,24 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
 
   const due = formatRelativeDue(contact.next_visit_date);
   const lastVisitedDisplay = contact.last_visit_date || contact.visited_date;
+  const contactHasGps = hasCoordinates(contact);
+  const mapsUrl = buildMapsUrl(contact);
+  const gpsSupported = isGeolocationSupported();
+
+  const handleCaptureGPS = async () => {
+    setGpsError(null);
+    setLocatingGps(true);
+    try {
+      const result = await captureCurrentGPS();
+      onUpdate(contact.id, { gps_lat: result.lat, gps_lng: result.lng });
+      const accText = result.accuracyMeters > 0 ? ` (±${result.accuracyMeters}m)` : '';
+      onNotify?.(`GPS coordinates saved${accText}`);
+    } catch (err) {
+      setGpsError(err instanceof Error ? err.message : 'Could not capture GPS coordinates.');
+    } finally {
+      setLocatingGps(false);
+    }
+  };
 
   const handlePublicationChange = (pubName: string) => {
     const preset = PUBLICATION_PRESETS.find((p) => p.name === pubName);
@@ -571,19 +602,38 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
           <section className="info-summary-card" aria-label="Contact details">
             <div className="info-summary-top">
               <div className="info-pills">
-                {contact.address && (
+                {mapsUrl && (
                   <a
                     className="info-pill interactive"
-                    href={`https://maps.google.com/?q=${encodeURIComponent(
-                      [contact.address, contact.apartment].filter(Boolean).join(', ')
-                    )}`}
+                    href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Open address in Maps"
+                    title={
+                      contactHasGps
+                        ? `Open exact GPS pin (${formatCoordinates(contact.gps_lat!, contact.gps_lng!)}) in Maps`
+                        : 'Open address in Maps'
+                    }
                   >
                     <Navigation size={12} />
-                    <span>{[contact.address, contact.apartment].filter(Boolean).join(', ')}</span>
+                    <span>
+                      {contact.address
+                        ? `${[contact.address, contact.apartment].filter(Boolean).join(', ')}${contactHasGps ? ' · GPS' : ''}`
+                        : `GPS: ${formatCoordinates(contact.gps_lat!, contact.gps_lng!, 4)}`}
+                    </span>
                   </a>
+                )}
+                {!contactHasGps && gpsSupported && (
+                  <button
+                    type="button"
+                    id="btn-pin-gps-quick"
+                    className="info-pill interactive"
+                    disabled={locatingGps}
+                    onClick={() => void handleCaptureGPS()}
+                    title="Save your current GPS coordinates for this contact"
+                  >
+                    <LocateFixed size={12} />
+                    <span>{locatingGps ? 'Locating…' : 'Pin GPS'}</span>
+                  </button>
                 )}
                 {lastVisitedDisplay && (
                   <span className="info-pill">
@@ -630,12 +680,13 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   </a>
                 )}
                 {!contact.address &&
+                  !contactHasGps &&
                   !lastVisitedDisplay &&
                   !contact.best_time &&
                   !contact.language &&
                   !contact.phone && (
                     <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                      Add address, best time, territory, or date visited…
+                      Add address, pin GPS, best time, or date visited…
                     </span>
                   )}
               </div>
@@ -658,23 +709,55 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
               </button>
             </div>
 
+            {gpsError && <div className="error-banner">{gpsError}</div>}
+
             {editingInfo && (
               <div
                 className="meta-grid"
                 style={{ border: 'none', padding: '6px 0 0', background: 'transparent' }}
               >
-                <label className="meta-field">
-                  <span className="meta-label">
-                    <MapPin size={11} /> Address
-                  </span>
+                <div className="meta-field">
+                  <div className="meta-label-row">
+                    <label htmlFor="contact-address-input" className="meta-label">
+                      <MapPin size={11} /> Address
+                    </label>
+                    {gpsSupported && (
+                      <button
+                        type="button"
+                        id="btn-capture-gps"
+                        className="btn-gps"
+                        disabled={locatingGps}
+                        onClick={() => void handleCaptureGPS()}
+                        title="Capture your current GPS location"
+                      >
+                        <LocateFixed size={11} />
+                        {locatingGps ? 'Locating…' : contactHasGps ? 'Update GPS' : 'Use GPS'}
+                      </button>
+                    )}
+                  </div>
                   <input
+                    id="contact-address-input"
                     type="text"
                     className="meta-input"
                     value={contact.address}
-                    placeholder="Street address"
+                    placeholder="Street address or landmark"
                     onChange={(e) => onUpdate(contact.id, { address: e.target.value })}
                   />
-                </label>
+                  {contactHasGps && (
+                    <div className="gps-badge">
+                      <span>{formatCoordinates(contact.gps_lat!, contact.gps_lng!)}</span>
+                      <button
+                        type="button"
+                        className="gps-clear-btn"
+                        onClick={() => onUpdate(contact.id, { gps_lat: null, gps_lng: null })}
+                        title="Clear saved GPS coordinates"
+                        aria-label="Clear saved GPS coordinates"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <label className="meta-field">
                   <span className="meta-label">Unit / Apt</span>

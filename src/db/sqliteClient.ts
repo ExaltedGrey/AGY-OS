@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS contacts (
   status TEXT NOT NULL DEFAULT 'return_visit',
   address TEXT NOT NULL DEFAULT '',
   apartment TEXT NOT NULL DEFAULT '',
+  gps_lat REAL,
+  gps_lng REAL,
   territory TEXT NOT NULL DEFAULT '',
   best_time TEXT NOT NULL DEFAULT '',
   language TEXT NOT NULL DEFAULT '',
@@ -61,6 +63,12 @@ function applySchemaAndMigrations(db: Database): void {
   );
   if (!columns.has('visited_date')) {
     db.run('ALTER TABLE contacts ADD COLUMN visited_date TEXT;');
+  }
+  if (!columns.has('gps_lat')) {
+    db.run('ALTER TABLE contacts ADD COLUMN gps_lat REAL;');
+  }
+  if (!columns.has('gps_lng')) {
+    db.run('ALTER TABLE contacts ADD COLUMN gps_lng REAL;');
   }
 }
 

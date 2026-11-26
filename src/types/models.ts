@@ -12,6 +12,8 @@ export interface Contact {
   status: ContactStatus;
   address: string;
   apartment: string;
+  gps_lat: number | null;
+  gps_lng: number | null;
   territory: string;
   best_time: string;
   language: string;

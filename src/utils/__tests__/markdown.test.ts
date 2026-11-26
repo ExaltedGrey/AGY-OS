@@ -44,6 +44,8 @@ describe('markdown utilities', () => {
       status: 'bible_study',
       address: '418 Cedarbrook Lane',
       apartment: 'Apt 2B',
+      gps_lat: 34.052235,
+      gps_lng: -118.243683,
       territory: 'Northside',
       best_time: 'Sat 10:30 AM',
       language: 'English',
@@ -77,6 +79,7 @@ describe('markdown utilities', () => {
     expect(md).toContain('---');
     expect(md).toContain('name: "Maria Santos"');
     expect(md).toContain('status: "Bible Study"');
+    expect(md).toContain('gps: "34.052235, -118.243683"');
     expect(md).toContain('tags: [bible-study]');
     expect(md).toContain('## Visit Log');
     expect(md).toContain('### 2026-11-20 — Bible Study Conducted');

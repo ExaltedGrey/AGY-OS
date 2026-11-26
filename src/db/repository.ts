@@ -47,6 +47,14 @@ function rowToContact(row: Record<string, unknown>): Contact {
     status: (row.status as ContactStatus) || 'return_visit',
     address: String(row.address ?? ''),
     apartment: String(row.apartment ?? ''),
+    gps_lat:
+      row.gps_lat !== null && row.gps_lat !== undefined && row.gps_lat !== ''
+        ? Number(row.gps_lat)
+        : null,
+    gps_lng:
+      row.gps_lng !== null && row.gps_lng !== undefined && row.gps_lng !== ''
+        ? Number(row.gps_lng)
+        : null,
     territory: String(row.territory ?? ''),
     best_time: String(row.best_time ?? ''),
     language: String(row.language ?? ''),
@@ -194,6 +202,8 @@ export class FieldnotesRepository {
       status: partial.status ?? 'return_visit',
       address: partial.address ?? '',
       apartment: partial.apartment ?? '',
+      gps_lat: partial.gps_lat ?? null,
+      gps_lng: partial.gps_lng ?? null,
       territory: partial.territory ?? '',
       best_time: partial.best_time ?? '',
       language: partial.language ?? '',
@@ -212,16 +222,18 @@ export class FieldnotesRepository {
 
     this.db.run(
       `INSERT INTO contacts (
-        id, name, status, address, apartment, territory, best_time, language, phone,
+        id, name, status, address, apartment, gps_lat, gps_lng, territory, best_time, language, phone,
         publication, current_lesson, lesson_progress, lesson_total, visited_date,
         next_visit_date, notes, pinned, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         contact.id,
         contact.name,
         contact.status,
         contact.address,
         contact.apartment,
+        contact.gps_lat,
+        contact.gps_lng,
         contact.territory,
         contact.best_time,
         contact.language,
@@ -258,7 +270,7 @@ export class FieldnotesRepository {
 
     this.db.run(
       `UPDATE contacts SET
-        name = ?, status = ?, address = ?, apartment = ?, territory = ?,
+        name = ?, status = ?, address = ?, apartment = ?, gps_lat = ?, gps_lng = ?, territory = ?,
         best_time = ?, language = ?, phone = ?, publication = ?,
         current_lesson = ?, lesson_progress = ?, lesson_total = ?,
         visited_date = ?, next_visit_date = ?, notes = ?, pinned = ?, updated_at = ?
@@ -268,6 +280,8 @@ export class FieldnotesRepository {
         updated.status,
         updated.address,
         updated.apartment,
+        updated.gps_lat,
+        updated.gps_lng,
         updated.territory,
         updated.best_time,
         updated.language,

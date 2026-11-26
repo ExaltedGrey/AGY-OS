@@ -8,6 +8,8 @@ const sampleContact: ContactSummary = {
   status: 'bible_study',
   address: '418 Cedarbrook Lane',
   apartment: 'Apt 2B',
+  gps_lat: 34.052235,
+  gps_lng: -118.243683,
   territory: 'Northside — Map 14',
   best_time: 'Sat mornings, 10:30 AM',
   language: 'English',
@@ -29,7 +31,7 @@ const sampleContact: ContactSummary = {
 };
 
 describe('buildFollowUpICS', () => {
-  it('generates valid RFC 5545 all-day event handling year rollovers and escaping', () => {
+  it('generates valid RFC 5545 all-day event handling year rollovers, GPS GEO, and escaping', () => {
     const ics = buildFollowUpICS(sampleContact);
 
     expect(ics).toContain('BEGIN:VCALENDAR\r\n');
@@ -37,6 +39,8 @@ describe('buildFollowUpICS', () => {
     expect(ics).toContain('DTEND;VALUE=DATE:20270101\r\n');
     expect(ics).toContain('SUMMARY:Bible Study — Maria Santos\r\n');
     expect(ics).toContain('LOCATION:418 Cedarbrook Lane\\, Apt 2B\r\n');
+    expect(ics).toContain('GEO:34.052235;-118.243683\r\n');
+    expect(ics).toContain('Maps: https://maps.google.com/?q=34.052235\\,-118.243683');
     expect(ics).toContain('Last scriptures: Ps 83:18\\; Jas 4:8');
     expect(ics).toContain('Next question: What qualities draw us close to God?');
     expect(ics).toContain('BEGIN:VALARM\r\n');

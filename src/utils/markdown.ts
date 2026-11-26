@@ -103,6 +103,9 @@ export function contactToObsidianMarkdown(contact: Contact, visits: Visit[]): st
     contact.address
       ? `address: "${[contact.address, contact.apartment].filter(Boolean).join(', ').replace(/"/g, '\\"')}"`
       : null,
+    typeof contact.gps_lat === 'number' && typeof contact.gps_lng === 'number'
+      ? `gps: "${contact.gps_lat.toFixed(6)}, ${contact.gps_lng.toFixed(6)}"`
+      : null,
     contact.best_time ? `best_time: "${contact.best_time.replace(/"/g, '\\"')}"` : null,
     contact.language ? `language: "${contact.language.replace(/"/g, '\\"')}"` : null,
     contact.phone ? `phone: "${contact.phone.replace(/"/g, '\\"')}"` : null,

@@ -113,8 +113,11 @@ export const GuideModal: React.FC<GuideModalProps> = ({
                     left menu — no manual folders needed.
                   </li>
                   <li>
-                    <strong>One-tap Maps &amp; Call:</strong> Tap a contact&apos;s address pill to
-                    open directions in Google Maps, or tap their phone number to call.
+                    <strong>One-tap GPS, Maps &amp; Call:</strong> Tap <strong>Pin GPS</strong> (or{' '}
+                    <strong>Use GPS</strong> next to Address) while in the field to save exact
+                    doorstep coordinates. Tapping the address/GPS pill opens pinpoint directions in
+                    Maps, and coordinates are automatically included when emailing or adding to your
+                    calendar.
                   </li>
                   <li>
                     <strong>Bible Study tracker:</strong> Set a contact&apos;s status to{' '}

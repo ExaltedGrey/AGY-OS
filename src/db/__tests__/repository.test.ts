@@ -96,6 +96,8 @@ describe('FieldnotesRepository (SQLite)', () => {
       name: 'Elena Rostova',
       status: 'return_visit',
       territory: 'West End',
+      gps_lat: 34.052235,
+      gps_lng: -118.243683,
       notes: 'Prefers evening visits #evening',
     });
 
@@ -114,6 +116,8 @@ describe('FieldnotesRepository (SQLite)', () => {
     expect(contacts).toHaveLength(1);
     expect(contacts[0].name).toBe('Elena Rostova');
     expect(contacts[0].territory).toBe('West End');
+    expect(contacts[0].gps_lat).toBe(34.052235);
+    expect(contacts[0].gps_lng).toBe(-118.243683);
   });
 
   it('tracks visited_date, edits visits, and finds [[wikilink]] backlinks in visit notes', () => {

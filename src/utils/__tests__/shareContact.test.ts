@@ -12,6 +12,8 @@ const contact: ContactSummary = {
   status: 'bible_study',
   address: '418 Cedarbrook Lane',
   apartment: 'Apt 2B',
+  gps_lat: null,
+  gps_lng: null,
   territory: 'Northside — Map 14',
   best_time: 'Sat mornings 10:30 AM',
   language: 'English / Spanish',
@@ -58,6 +60,15 @@ describe('shareContact utilities', () => {
     expect(text).toContain('Scriptures: Ps 83:18; Jas 4:8');
     expect(text).toContain('Next Question: What qualities of Jehovah draw us closest to him?');
     expect(text).toContain('Notes: Completed points 1–3 of Lesson 04.');
+  });
+
+  it('includes GPS coordinates and pinpoint Maps link even when no street address is entered', () => {
+    const text = formatContactShareText(
+      { ...contact, address: '', apartment: '', gps_lat: 34.052235, gps_lng: -118.243683 },
+      []
+    );
+    expect(text).toContain('GPS: 34.052235, -118.243683');
+    expect(text).toContain('Maps: https://maps.google.com/?q=34.052235,-118.243683');
   });
 
   it('builds a properly encoded mailto URL with subject and body', () => {

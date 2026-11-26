@@ -1,5 +1,6 @@
 import { OUTCOME_META, STATUS_META, type ContactSummary, type Visit } from '../types/models';
 import { formatShortDate } from './date';
+import { buildMapsUrl, formatCoordinates, hasCoordinates } from './location';
 
 export function formatContactShareSubject(contact: ContactSummary): string {
   const statusLabel = STATUS_META[contact.status]?.label ?? 'Contact';
@@ -12,13 +13,19 @@ export function formatContactShareText(contact: ContactSummary, visits: Visit[])
   const name = contact.name.trim() || 'Untitled Contact';
   const fullAddress = [contact.address, contact.apartment].filter(Boolean).join(', ');
   const visitedDate = contact.last_visit_date || contact.visited_date;
+  const mapsUrl = buildMapsUrl(contact);
 
   const lines: string[] = [`${name} (${statusLabel})`, ''];
 
   const details: string[] = [];
   if (fullAddress) {
     details.push(`Address: ${fullAddress}`);
-    details.push(`Maps: https://maps.google.com/?q=${encodeURIComponent(fullAddress)}`);
+  }
+  if (hasCoordinates(contact)) {
+    details.push(`GPS: ${formatCoordinates(contact.gps_lat, contact.gps_lng)}`);
+  }
+  if (mapsUrl) {
+    details.push(`Maps: ${mapsUrl}`);
   }
   if (contact.territory) details.push(`Territory: ${contact.territory}`);
   if (contact.best_time) details.push(`Best Time: ${contact.best_time}`);
