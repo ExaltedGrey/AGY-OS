@@ -1,4 +1,4 @@
-import { HelpCircle, Menu, Pin, Plus, Search, Sparkles, X } from 'lucide-react';
+import { HelpCircle, Menu, Pin, Plus, Search, Smartphone, Sparkles, X } from 'lucide-react';
 import React from 'react';
 import {
   STATUS_META,
@@ -8,6 +8,7 @@ import {
   type SortOption,
 } from '../types/models';
 import { formatRelativeDue } from '../utils/date';
+import type { GuideTab } from './GuideModal';
 
 interface ContactListProps {
   contacts: ContactSummary[];
@@ -22,7 +23,7 @@ interface ContactListProps {
   onOpenSidebar: () => void;
   onNewContact: () => void;
   onLoadSample: () => void;
-  onOpenGuide: () => void;
+  onOpenGuide: (tab?: GuideTab) => void;
 }
 
 function getFilterTitle(filter: SmartFilter): string {
@@ -153,8 +154,19 @@ export const ContactList: React.FC<ContactListProps> = ({
                 <button type="button" className="btn btn-secondary btn-sm" onClick={onLoadSample}>
                   <Sparkles size={14} /> Load Sample Notes
                 </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={onOpenGuide}>
-                  <HelpCircle size={14} /> How to Use &amp; Install
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onOpenGuide('how_to_use')}
+                >
+                  <HelpCircle size={14} /> How to Use
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => onOpenGuide('install')}
+                >
+                  <Smartphone size={14} /> Install on Device
                 </button>
               </div>
             )}

@@ -11,6 +11,8 @@ import {
   MapPin,
   Moon,
   Plus,
+  ShieldCheck,
+  Smartphone,
   Sun,
   UserCheck,
   X,
@@ -24,6 +26,7 @@ import type {
   TerritoryCount,
   ThemeMode,
 } from '../types/models';
+import type { GuideTab } from './GuideModal';
 
 interface SidebarProps {
   open: boolean;
@@ -41,7 +44,7 @@ interface SidebarProps {
   onNewContact: () => void;
   onOpenCommandPalette: () => void;
   onOpenBackupModal: () => void;
-  onOpenGuideModal: () => void;
+  onOpenGuideModal: (tab?: GuideTab) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -243,13 +246,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
               id="btn-how-to-use"
               className="nav-item"
               onClick={() => {
-                onOpenGuideModal();
+                onOpenGuideModal('how_to_use');
                 onClose();
               }}
             >
               <span className="nav-item-left">
                 <HelpCircle size={15} />
-                <span className="nav-item-label">How to Use &amp; Install</span>
+                <span className="nav-item-label">How to Use</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              id="btn-install-guide"
+              className="nav-item"
+              onClick={() => {
+                onOpenGuideModal('install');
+                onClose();
+              }}
+            >
+              <span className="nav-item-left">
+                <Smartphone size={15} />
+                <span className="nav-item-label">Install on Device</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              id="btn-privacy-guide"
+              className="nav-item"
+              onClick={() => {
+                onOpenGuideModal('backups');
+                onClose();
+              }}
+            >
+              <span className="nav-item-left">
+                <ShieldCheck size={15} />
+                <span className="nav-item-label">Privacy &amp; Backups</span>
               </span>
             </button>
           </div>

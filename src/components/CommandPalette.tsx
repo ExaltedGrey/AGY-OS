@@ -6,6 +6,7 @@ import {
   Moon,
   Plus,
   Search,
+  Smartphone,
   Sun,
   User,
 } from 'lucide-react';
@@ -17,6 +18,7 @@ import {
   type TerritoryCount,
   type ThemeMode,
 } from '../types/models';
+import type { GuideTab } from './GuideModal';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -30,7 +32,7 @@ interface CommandPaletteProps {
   onSelectTag: (tag: string) => void;
   onNewContact: () => void;
   onOpenBackup: () => void;
-  onOpenGuide: () => void;
+  onOpenGuide: (tab?: GuideTab) => void;
   onToggleTheme: () => void;
 }
 
@@ -95,13 +97,23 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         },
       },
       {
-        id: 'act-guide',
-        label: 'How to Use & Install as App',
-        sub: 'Privacy, backup instructions, and phone home-screen setup',
+        id: 'act-guide-use',
+        label: 'How to Use Fieldnotes',
+        sub: 'Dictation, calendar reminders, sharing, and Obsidian notes',
         icon: <HelpCircle size={15} />,
         run: () => {
           onClose();
-          onOpenGuide();
+          onOpenGuide('how_to_use');
+        },
+      },
+      {
+        id: 'act-guide-install',
+        label: 'Install on Your Device',
+        sub: 'Add to iPhone, Android, or desktop home screen for offline use',
+        icon: <Smartphone size={15} />,
+        run: () => {
+          onClose();
+          onOpenGuide('install');
         },
       },
       {

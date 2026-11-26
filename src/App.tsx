@@ -1,10 +1,10 @@
-import { BookOpen, CheckCircle2, HelpCircle, Plus, Sparkles, Upload } from 'lucide-react';
+import { BookOpen, CheckCircle2, HelpCircle, Plus, Smartphone, Sparkles, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { BackupModal } from './components/BackupModal';
 import { CommandPalette } from './components/CommandPalette';
 import { ContactDetail } from './components/ContactDetail';
 import { ContactList } from './components/ContactList';
-import { GuideModal } from './components/GuideModal';
+import { GuideModal, type GuideTab } from './components/GuideModal';
 import { Sidebar } from './components/Sidebar';
 import { useFieldnotes } from './hooks/useFieldnotes';
 
@@ -18,6 +18,12 @@ export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [guideTab, setGuideTab] = useState<GuideTab>('how_to_use');
+
+  const openGuide = (tab: GuideTab = 'how_to_use') => {
+    setGuideTab(tab);
+    setGuideOpen(true);
+  };
 
   // Global Cmd/Ctrl+K shortcut
   useEffect(() => {
@@ -95,7 +101,7 @@ export function App() {
         onNewContact={handleNewContact}
         onOpenCommandPalette={() => setPaletteOpen(true)}
         onOpenBackupModal={() => setBackupOpen(true)}
-        onOpenGuideModal={() => setGuideOpen(true)}
+        onOpenGuideModal={openGuide}
       />
 
       <ContactList
@@ -114,7 +120,7 @@ export function App() {
           fn.loadSampleData();
           setMobileView('detail');
         }}
-        onOpenGuide={() => setGuideOpen(true)}
+        onOpenGuide={openGuide}
       />
 
       {fn.selectedContact ? (
@@ -185,10 +191,19 @@ export function App() {
                 type="button"
                 id="btn-empty-guide"
                 className="btn btn-ghost"
-                onClick={() => setGuideOpen(true)}
+                onClick={() => openGuide('how_to_use')}
               >
                 <HelpCircle size={15} />
-                How to Use &amp; Install
+                How to Use
+              </button>
+              <button
+                type="button"
+                id="btn-empty-install"
+                className="btn btn-ghost"
+                onClick={() => openGuide('install')}
+              >
+                <Smartphone size={15} />
+                Install on Device
               </button>
             </div>
           </div>
@@ -210,7 +225,7 @@ export function App() {
         onSelectTag={handleClickTag}
         onNewContact={handleNewContact}
         onOpenBackup={() => setBackupOpen(true)}
-        onOpenGuide={() => setGuideOpen(true)}
+        onOpenGuide={openGuide}
         onToggleTheme={fn.toggleTheme}
       />
 
@@ -227,6 +242,7 @@ export function App() {
 
       <GuideModal
         open={guideOpen}
+        initialTab={guideTab}
         onClose={() => setGuideOpen(false)}
         onOpenBackup={() => setBackupOpen(true)}
       />
