@@ -134,6 +134,7 @@ export function App() {
           onClickWikilink={handleClickWikilink}
           onSelectContact={handleSelectContact}
           onBackMobile={() => setMobileView('list')}
+          onNotify={fn.showToast}
         />
       ) : (
         <main className="detail-pane">

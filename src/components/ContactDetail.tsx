@@ -9,9 +9,11 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  Copy,
   Globe,
   HelpCircle,
   Link2,
+  Mail,
   MapPin,
   Mic,
   Minus,
@@ -21,6 +23,7 @@ import {
   Pin,
   Plus,
   ScrollText,
+  Share2,
   Sparkles,
   Square,
   Trash2,
@@ -42,6 +45,12 @@ import {
 import { downloadFollowUpICS } from '../utils/calendar';
 import { addDaysISO, formatRelativeDue, formatShortDate, getTodayISO } from '../utils/date';
 import { toggleCheckboxAtLine } from '../utils/markdown';
+import {
+  buildContactMailtoUrl,
+  canUseNativeShare,
+  copyContactToClipboard,
+  shareContactNatively,
+} from '../utils/shareContact';
 import { MarkdownPreview } from './MarkdownPreview';
 
 interface ContactDetailProps {
@@ -60,6 +69,7 @@ interface ContactDetailProps {
   onClickWikilink: (name: string) => void;
   onSelectContact: (id: string) => void;
   onBackMobile: () => void;
+  onNotify?: (message: string) => void;
   composerOpenSignal?: number;
 }
 
@@ -86,6 +96,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   onClickWikilink,
   onSelectContact,
   onBackMobile,
+  onNotify,
   composerOpenSignal = 0,
 }) => {
   const [editingInfo, setEditingInfo] = useState(
@@ -95,6 +106,8 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [showPinnedEditor, setShowPinnedEditor] = useState(false);
   const [editingVisitId, setEditingVisitId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
 
   // New Visit & Note composer fields
   const [visitDate, setVisitDate] = useState(contact.visited_date || getTodayISO());
@@ -169,6 +182,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setShowPinnedEditor(false);
     setEditingVisitId(null);
     setConfirmDelete(false);
+    setShareMenuOpen(false);
     setOutcome(contact.status === 'bible_study' ? 'study_conducted' : 'spoke');
     setVisitDate(contact.visited_date || getTodayISO());
     setNextFollowUp(addDaysISO(7));
@@ -178,6 +192,17 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact.id]);
+
+  useEffect(() => {
+    if (!shareMenuOpen) return;
+    const handlePointerDown = (e: MouseEvent) => {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) {
+        setShareMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [shareMenuOpen]);
 
   useEffect(() => {
     if (composerOpenSignal > 0) {
@@ -349,6 +374,66 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
             <Plus size={14} />
             New Visit / Note
           </button>
+
+          <div className="share-menu-wrap" ref={shareMenuRef}>
+            <button
+              type="button"
+              id="btn-share-contact"
+              className={`btn-icon ${shareMenuOpen ? 'active' : ''}`}
+              onClick={() => setShareMenuOpen((v) => !v)}
+              title="Email or share contact details"
+              aria-label="Share contact"
+              aria-expanded={shareMenuOpen}
+            >
+              <Share2 size={16} />
+            </button>
+
+            {shareMenuOpen && (
+              <div className="share-popover" role="menu" aria-label="Share contact options">
+                <a
+                  className="share-popover-item"
+                  role="menuitem"
+                  href={buildContactMailtoUrl(contact, visits)}
+                  onClick={() => setShareMenuOpen(false)}
+                >
+                  <Mail size={15} style={{ color: 'var(--accent)' }} />
+                  <span>Email Contact</span>
+                </a>
+
+                {canUseNativeShare() && (
+                  <button
+                    type="button"
+                    className="share-popover-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setShareMenuOpen(false);
+                      void shareContactNatively(contact, visits).catch(() => {
+                        // User canceled native share sheet
+                      });
+                    }}
+                  >
+                    <Share2 size={15} style={{ color: 'var(--warm)' }} />
+                    <span>Share via Phone…</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="share-popover-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setShareMenuOpen(false);
+                    void copyContactToClipboard(contact, visits).then(() => {
+                      onNotify?.('Contact details copied to clipboard');
+                    });
+                  }}
+                >
+                  <Copy size={15} style={{ color: 'var(--text-secondary)' }} />
+                  <span>Copy as Text</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
