@@ -189,7 +189,7 @@ export class FieldnotesRepository {
     const now = new Date().toISOString();
     const contact: Contact = {
       id: generateId(),
-      name: partial.name?.trim() || 'New Contact',
+      name: partial.name !== undefined ? partial.name.trim() : 'New Contact',
       status: partial.status ?? 'return_visit',
       address: partial.address ?? '',
       apartment: partial.apartment ?? '',

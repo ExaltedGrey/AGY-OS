@@ -14,6 +14,7 @@ import {
   Mic,
   Minus,
   Navigation,
+  Pencil,
   Phone,
   Pin,
   Plus,
@@ -22,7 +23,7 @@ import {
   Square,
   Trash2,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { appendDictatedText, useDictation } from '../hooks/useDictation';
 import {
   OUTCOME_META,
@@ -93,6 +94,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [visitNotes, setVisitNotes] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState(addDaysISO(7));
   const [addToCalendar, setAddToCalendar] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const notesDictation = useDictation((spoken) => {
     onUpdate(contact.id, { notes: appendDictatedText(contact.notes, spoken) });
@@ -114,6 +116,9 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setVisitDate(getTodayISO());
     setNextFollowUp(addDaysISO(7));
     setAddToCalendar(false);
+    if (!contact.name.trim()) {
+      setTimeout(() => nameInputRef.current?.focus(), 40);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contact.id]);
 
@@ -290,15 +295,30 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   .map((p) => p[0]?.toUpperCase() ?? '')
                   .join('') || '?'}
               </span>
-              <input
-                id="contact-name-input"
-                type="text"
-                className="contact-title-input"
-                value={contact.name}
-                placeholder="Contact Name…"
-                onChange={(e) => onUpdate(contact.id, { name: e.target.value })}
-                aria-label="Contact name"
-              />
+              <div className="contact-title-wrap">
+                <input
+                  ref={nameInputRef}
+                  id="contact-name-input"
+                  type="text"
+                  className={`contact-title-input ${!contact.name.trim() ? 'is-empty' : ''}`}
+                  value={contact.name}
+                  placeholder="Tap to enter name…"
+                  onChange={(e) => onUpdate(contact.id, { name: e.target.value })}
+                  aria-label="Contact name"
+                />
+                <button
+                  type="button"
+                  className="btn-icon name-edit-btn"
+                  onClick={() => {
+                    nameInputRef.current?.focus();
+                    nameInputRef.current?.select();
+                  }}
+                  title="Edit contact name"
+                  aria-label="Edit contact name"
+                >
+                  <Pencil size={15} />
+                </button>
+              </div>
             </div>
 
             <div

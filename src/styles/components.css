@@ -1297,6 +1297,34 @@
   gap: 12px;
 }
 
+.contact-title-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1.5px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+
+.contact-title-wrap:hover,
+.contact-title-wrap:focus-within {
+  border-bottom-color: var(--border-strong);
+}
+
+.contact-title-input.is-empty {
+  border-bottom: 1.5px dashed var(--border-strong);
+}
+
+.name-edit-btn {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.name-edit-btn:hover {
+  color: var(--accent-text);
+}
+
 /* Compact Info Summary Strip (replaces always-open 7-field form) */
 .info-summary-card {
   padding: 12px 14px;
