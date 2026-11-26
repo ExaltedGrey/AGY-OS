@@ -1501,6 +1501,28 @@
   background: var(--bg-hover);
 }
 
+.info-pill.calendar-cta {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  font-weight: 600;
+}
+
+.info-pill.calendar-cta:hover {
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-color: var(--accent);
+}
+
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+
 
 
 

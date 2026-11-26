@@ -156,13 +156,20 @@ export const GuideModal: React.FC<GuideModalProps> = ({
                 </h3>
                 <ul className="guide-list">
                   <li>
-                    When logging a visit, pick a <strong>Schedule Next Visit</strong> date and check{' '}
-                    <strong>Add to phone calendar (.ics)</strong> — or tap the{' '}
-                    <strong>Next: … · Calendar</strong> pill at the top of a contact anytime.
+                    <strong>Automatic on save:</strong> Whenever <strong>Schedule Next Visit</strong>{' '}
+                    has a date filled in, tapping <strong>Save &amp; Add to Calendar</strong> saves
+                    your notes and immediately opens your phone&apos;s calendar invite (or tap{' '}
+                    <strong>Save Only</strong> to skip).
                   </li>
                   <li>
-                    Your phone&apos;s calendar opens pre-filled with their name, address, best time,
-                    last scriptures, next question, and <strong>visit notes</strong>, plus a 9:00 AM
+                    <strong>Re-add or reschedule anytime:</strong> Tap the highlighted{' '}
+                    <strong>Add to Calendar</strong> button at the top of the contact, tap the
+                    calendar icon on any visit card, or tap the pencil icon on a visit to change the
+                    follow-up date and re-send the invite.
+                  </li>
+                  <li>
+                    Each invite comes pre-filled with their name, address, best time, last
+                    scriptures, next question, and <strong>visit notes</strong>, plus a 9:00 AM
                     reminder.
                   </li>
                 </ul>

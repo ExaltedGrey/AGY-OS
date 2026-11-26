@@ -119,7 +119,6 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [nextQuestion, setNextQuestion] = useState('');
   const [visitNotes, setVisitNotes] = useState('');
   const [nextFollowUp, setNextFollowUp] = useState(addDaysISO(7));
-  const [addToCalendar, setAddToCalendar] = useState(false);
 
   // Edit existing visit fields
   const [editVisitDate, setEditVisitDate] = useState('');
@@ -128,6 +127,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
   const [editPublication, setEditPublication] = useState('');
   const [editNextQuestion, setEditNextQuestion] = useState('');
   const [editVisitNotes, setEditVisitNotes] = useState('');
+  const [editNextFollowUp, setEditNextFollowUp] = useState('');
 
   // Unified single-microphone dictation state
   const [dictationTarget, setDictationTarget] = useState<DictationTarget>(null);
@@ -186,7 +186,6 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setOutcome(contact.status === 'bible_study' ? 'study_conducted' : 'spoke');
     setVisitDate(contact.visited_date || getTodayISO());
     setNextFollowUp(addDaysISO(7));
-    setAddToCalendar(false);
     if (!contact.name.trim()) {
       setTimeout(() => nameInputRef.current?.focus(), 40);
     }
@@ -249,8 +248,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     onUpdateVisit(visit.id, { notes: updated });
   };
 
-  const handleSubmitVisit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitVisit = (triggerCalendar: boolean) => {
     stopDictation();
     onAddVisit(
       {
@@ -264,7 +262,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
       },
       nextFollowUp ? nextFollowUp : null
     );
-    if (addToCalendar && nextFollowUp) {
+    if (triggerCalendar && nextFollowUp) {
       downloadFollowUpICS(contact, {
         nextVisitDate: nextFollowUp,
         scriptures,
@@ -276,8 +274,12 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setPublicationPlaced('');
     setNextQuestion('');
     setVisitNotes('');
-    setAddToCalendar(false);
     setShowVisitComposer(false);
+  };
+
+  const handleSubmitVisit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitVisit(Boolean(nextFollowUp));
   };
 
   const startEditingVisit = (v: Visit) => {
@@ -289,10 +291,10 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
     setEditPublication(v.publication_placed);
     setEditNextQuestion(v.next_question);
     setEditVisitNotes(v.notes);
+    setEditNextFollowUp(contact.next_visit_date ?? addDaysISO(7));
   };
 
-  const handleSaveEditedVisit = (e: React.FormEvent, visitId: string) => {
-    e.preventDefault();
+  const saveEditedVisit = (visitId: string, triggerCalendar: boolean) => {
     stopDictation();
     onUpdateVisit(visitId, {
       visit_date: editVisitDate || getTodayISO(),
@@ -302,7 +304,24 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
       next_question: editNextQuestion.trim(),
       notes: editVisitNotes.trim(),
     });
+    const nextDate = editNextFollowUp ? editNextFollowUp : null;
+    if (nextDate !== contact.next_visit_date) {
+      onUpdate(contact.id, { next_visit_date: nextDate });
+    }
+    if (triggerCalendar && nextDate) {
+      downloadFollowUpICS(contact, {
+        nextVisitDate: nextDate,
+        scriptures: editScriptures,
+        nextQuestion: editNextQuestion,
+        visitNotes: editVisitNotes,
+      });
+    }
     setEditingVisitId(null);
+  };
+
+  const handleSaveEditedVisit = (e: React.FormEvent, visitId: string) => {
+    e.preventDefault();
+    saveEditedVisit(visitId, Boolean(editNextFollowUp));
   };
 
   const progressPct =
@@ -576,7 +595,7 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                   <button
                     type="button"
                     id="btn-add-to-calendar"
-                    className="info-pill interactive"
+                    className="info-pill calendar-cta"
                     onClick={() =>
                       downloadFollowUpICS(contact, {
                         visitNotes: visits[0]?.notes || contact.notes,
@@ -584,8 +603,8 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     }
                     title="Add follow-up visit to your phone or computer calendar"
                   >
-                    <CalendarPlus size={12} />
-                    <span>Next: {formatShortDate(contact.next_visit_date)} · Calendar</span>
+                    <CalendarPlus size={13} />
+                    <span>Add to Calendar · {formatShortDate(contact.next_visit_date)}</span>
                   </button>
                 )}
                 {contact.best_time && (
@@ -955,43 +974,21 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     flexWrap: 'wrap',
                     alignItems: 'flex-end',
                     justifyContent: 'space-between',
-                    gap: '10px',
+                    gap: '12px',
                     paddingTop: '4px',
                   }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
-                    <label className="field-group">
-                      <span className="field-label">Schedule Next Visit</span>
-                      <input
-                        type="date"
-                        className="input"
-                        value={nextFollowUp}
-                        onChange={(e) => setNextFollowUp(e.target.value)}
-                      />
-                    </label>
-                    {nextFollowUp && (
-                      <label
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '7px',
-                          fontSize: '12.5px',
-                          color: 'var(--text-secondary)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={addToCalendar}
-                          onChange={(e) => setAddToCalendar(e.target.checked)}
-                          style={{ accentColor: 'var(--accent)', width: '15px', height: '15px' }}
-                        />
-                        <span>Add to phone calendar (.ics)</span>
-                      </label>
-                    )}
-                  </div>
+                  <label className="field-group" style={{ minWidth: '180px' }}>
+                    <span className="field-label">Schedule Next Visit</span>
+                    <input
+                      type="date"
+                      className="input"
+                      value={nextFollowUp}
+                      onChange={(e) => setNextFollowUp(e.target.value)}
+                    />
+                  </label>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="composer-actions">
                     <button
                       type="button"
                       className="btn btn-ghost"
@@ -1002,8 +999,24 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                     >
                       Cancel
                     </button>
+                    {nextFollowUp && (
+                      <button
+                        type="button"
+                        id="btn-save-visit-only"
+                        className="btn btn-secondary"
+                        onClick={() => submitVisit(false)}
+                      >
+                        Save Only
+                      </button>
+                    )}
                     <button type="submit" id="btn-save-visit" className="btn btn-primary">
-                      Save Visit &amp; Note
+                      {nextFollowUp ? (
+                        <>
+                          <CalendarPlus size={14} /> Save &amp; Add to Calendar
+                        </>
+                      ) : (
+                        'Save Visit & Note'
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1186,20 +1199,56 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            stopDictation();
-                            setEditingVisitId(null);
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button type="submit" className="btn btn-primary btn-sm">
-                          Save Changes
-                        </button>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          alignItems: 'flex-end',
+                          justifyContent: 'space-between',
+                          gap: '10px',
+                          paddingTop: '4px',
+                        }}
+                      >
+                        <label className="field-group" style={{ minWidth: '175px' }}>
+                          <span className="field-label">Schedule Next Visit</span>
+                          <input
+                            type="date"
+                            className="input"
+                            value={editNextFollowUp}
+                            onChange={(e) => setEditNextFollowUp(e.target.value)}
+                          />
+                        </label>
+
+                        <div className="composer-actions">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => {
+                              stopDictation();
+                              setEditingVisitId(null);
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          {editNextFollowUp && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => saveEditedVisit(v.id, false)}
+                            >
+                              Save Only
+                            </button>
+                          )}
+                          <button type="submit" className="btn btn-primary btn-sm">
+                            {editNextFollowUp ? (
+                              <>
+                                <CalendarPlus size={13} /> Save &amp; Add to Calendar
+                              </>
+                            ) : (
+                              'Save Changes'
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </form>
                   ) : (
@@ -1212,6 +1261,24 @@ export const ContactDetail: React.FC<ContactDetailProps> = ({
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          {contact.next_visit_date && (
+                            <button
+                              type="button"
+                              className="btn-icon"
+                              onClick={() =>
+                                downloadFollowUpICS(contact, {
+                                  nextVisitDate: contact.next_visit_date,
+                                  scriptures: v.scriptures,
+                                  nextQuestion: v.next_question,
+                                  visitNotes: v.notes,
+                                })
+                              }
+                              title={`Add follow-up (${formatShortDate(contact.next_visit_date)}) with this visit's notes to calendar`}
+                              aria-label="Add to calendar"
+                            >
+                              <CalendarPlus size={14} style={{ color: 'var(--accent-text)' }} />
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="btn-icon"
